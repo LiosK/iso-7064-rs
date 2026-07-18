@@ -1,8 +1,25 @@
 [package]
 name = "iso-7064"
 version = "0.1.0"
+authors = ["LiosK <contact@mail.liosk.net>"]
 license = "Apache-2.0"
 edition = "2024"
 rust-version = "1.85"
+description = "A Rust implementation of ISO/IEC 7064:2003 Check character systems"
+repository = "https://github.com/LiosK/iso-7064-rs"
+documentation = "https://docs.rs/iso-7064"
+keywords = ["check-character", "check-digit", "iso-iec-7064"]
+categories = ["algorithms", "text-processing", "no-std"]
+exclude = ["/.github/"]
 
-[dependencies]
+[features]
+default = ["alloc"]
+alloc = []
+
+[dev-dependencies]
+rand = { version = "0.10", default-features = false, features = ["sys_rng"] }
+
+[package.metadata.docs.rs]
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --no-deps --open
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
