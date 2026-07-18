@@ -52,6 +52,17 @@ where
     /// # Errors
     ///
     /// Returns a [`ComputeError`] if any character is not in the character set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD11_2;
+    ///
+    /// let mut buf = String::from("327");
+    /// MOD11_2.protect(&mut buf)?;
+    /// assert_eq!(buf, "327X");
+    /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
+    /// ```
     #[cfg(feature = "alloc")]
     pub fn protect(&self, s: &mut alloc::string::String) -> Result<(), ComputeError<char>> {
         s.extend(self.compute(s)?);
@@ -60,6 +71,16 @@ where
 
     /// Computes the check characters for the string `s` and appends them, ignoring any invalid
     /// characters.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD11_2;
+    ///
+    /// let mut buf = String::from("3.2.7.");
+    /// MOD11_2.protect_lax(&mut buf);
+    /// assert_eq!(buf, "3.2.7.X");
+    /// ```
     #[cfg(feature = "alloc")]
     pub fn protect_lax(&self, s: &mut alloc::string::String) {
         s.extend(self.compute_lax(s));
@@ -70,11 +91,28 @@ where
     /// # Errors
     ///
     /// Returns a [`ComputeError`] if any character is not in the character set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD37_2;
+    ///
+    /// assert_eq!(MOD37_2.compute("5S7U")?, ['G']);
+    /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
+    /// ```
     pub fn compute(&self, s: &str) -> Result<[char; N_CC], ComputeError<char>> {
         self.compute_from_chars(s.chars())
     }
 
     /// Computes the check characters for the string `s`, ignoring any invalid characters.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD37_2;
+    ///
+    /// assert_eq!(MOD37_2.compute_lax("5S=7U"), ['G']);
+    /// ```
     pub fn compute_lax(&self, s: &str) -> [char; N_CC] {
         let mut acc = Acc::default();
         for c in s.chars() {
@@ -88,6 +126,16 @@ where
     /// # Errors
     ///
     /// Returns a [`ComputeError`] if any character is not in the character set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD11_10;
+    ///
+    /// let iter = ['2', '0', '6', '5', '1'];
+    /// assert_eq!(MOD11_10.compute_from_chars(iter)?, ['8']);
+    /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
+    /// ```
     pub fn compute_from_chars(
         &self,
         chars: impl IntoIterator<Item = char>,
@@ -107,6 +155,16 @@ where
     /// # Errors
     ///
     /// Returns a [`ComputeError`] if any value is not in the character set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD37_36;
+    ///
+    /// let iter = [21, 14, 5, 34];
+    /// assert_eq!(MOD37_36.compute_from_values(iter)?, [17]);
+    /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
+    /// ```
     pub fn compute_from_values(
         &self,
         values: impl IntoIterator<Item = u32>,
@@ -127,6 +185,15 @@ where
     ///
     /// Returns a [`VerifyError`] if any character is not in the character set, or if a
     /// supplementary check character (e.g., `X` or `*`) is found before the end.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD661_26;
+    ///
+    /// assert!(MOD661_26.verify("MVEISJV")?);
+    /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
+    /// ```
     pub fn verify(&self, s: &str) -> Result<bool, VerifyError<char>> {
         self.verify_from_chars(s.chars())
     }
@@ -136,6 +203,14 @@ where
     ///
     /// For this purpose, supplementary check characters (e.g., `X` or `*`) found before the end are
     /// regarded as invalid and ignored.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD661_26;
+    ///
+    /// assert!(MOD661_26.verify_lax("MV-EIS:JV"));
+    /// ```
     pub fn verify_lax(&self, s: &str) -> bool {
         let mut acc = Acc::default();
         for c in s.chars() {
@@ -150,6 +225,16 @@ where
     ///
     /// Returns a [`VerifyError`] if any character is not in the character set, or if a
     /// supplementary check character (e.g., `X` or `*`) is found before the end.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD97_10;
+    ///
+    /// let iter = "3793".chars().chain(['6', '8']);
+    /// assert!(MOD97_10.verify_from_chars(iter)?);
+    /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
+    /// ```
     pub fn verify_from_chars(
         &self,
         chars: impl IntoIterator<Item = char>,
@@ -181,6 +266,16 @@ where
     ///
     /// Returns a [`VerifyError`] if any value is not in the character set, or if a supplementary
     /// check character value is found before the end.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD27_26;
+    ///
+    /// let iter = [2, 13, 17, 11].into_iter().chain([15]);
+    /// assert!(MOD27_26.verify_from_values(iter)?);
+    /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
+    /// ```
     pub fn verify_from_values(
         &self,
         values: impl IntoIterator<Item = u32>,
@@ -294,5 +389,38 @@ impl fmt::Display for VerifyErrorKind {
             Self::NotInCharset => f.write_str("char not in charset"),
             Self::UnexpectedSuppl => f.write_str("suppl check char not at end"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn do_not_mutate_on_error() {
+        let mod1271_36 = Mod1271_36::default();
+        let mut buf = alloc::string::String::from("0 1 2 3");
+        assert!(mod1271_36.protect(&mut buf).is_err());
+        assert_eq!(buf, "0 1 2 3");
+    }
+
+    #[test]
+    fn reject_unexpected_suppl() {
+        let mod11_2 = Mod11_2::default();
+        assert!(mod11_2.compute("012X34").is_err());
+        assert!(mod11_2.compute("01234X").is_err());
+        assert!(mod11_2.verify("012X34").is_err());
+        assert!(mod11_2.verify("01234X").is_ok());
+    }
+
+    #[test]
+    fn ignore_unexpected_suppl() {
+        let mod11_2 = Mod11_2::default();
+        assert_eq!(mod11_2.compute_lax("32X37"), ['X']);
+        assert_eq!(mod11_2.compute_lax("3237X"), ['X']);
+        assert!(mod11_2.verify_lax("32X37X"));
+        assert!(mod11_2.verify_lax("3237XX"));
+        assert!(mod11_2.verify_lax("3237X"));
     }
 }
