@@ -39,6 +39,9 @@
 //! | ISO/IEC 7064, MOD 27,26   | Hybrid | Alphabetic (`A-Z`)      | 1 letter (`A-Z`)                      |
 //! | ISO/IEC 7064, MOD 37,36   | Hybrid | Alphanumeric (`0-9A-Z`) | 1 digit or letter (`0-9A-Z`)          |
 //!
+//! This library also provides support for the variant of MOD 97-10 used in the
+//! International Bank Account Number (IBAN).
+//!
 //! ## Crate features
 //!
 //! - `alloc` (enabled by default) enables APIs operating over `String`.
@@ -48,6 +51,7 @@
 
 pub mod accumulator;
 pub mod charset;
+pub mod iban;
 pub mod system;
 
 /// The ISO/IEC 7064, MOD 11-2 pure system with a single check character.
