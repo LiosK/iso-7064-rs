@@ -63,7 +63,7 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
     const fn new() -> Self {
         assert!(MODULUS >= CHARSET_SIZE);
         assert!(MODULUS > 0 && RADIX > 0 && CHARSET_SIZE > 0);
-        assert!(u32::MAX / RADIX > MODULUS);
+        assert!(MODULUS < u32::MAX);
         Self {
             carry: 0,
             suppl: None,
@@ -100,7 +100,7 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
 
     #[inline(always)]
     const fn step(mut carry: u32, value: u32) -> u32 {
-        if carry > u32::MAX / RADIX - MODULUS {
+        if carry > (u32::MAX - MODULUS) / RADIX {
             carry %= MODULUS;
         }
         carry * RADIX + value
@@ -118,7 +118,7 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
     const fn new() -> Self {
         assert!(MODULUS <= CHARSET_SIZE * CHARSET_SIZE);
         assert!(MODULUS > 0 && CHARSET_SIZE > 0);
-        assert!(u32::MAX / CHARSET_SIZE > MODULUS);
+        assert!(MODULUS < u32::MAX);
         Self { carry: 0 }
     }
 
@@ -146,7 +146,7 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
     #[inline(always)]
     const fn step(mut carry: u32, value: u32) -> u32 {
         let radix = CHARSET_SIZE;
-        if carry > u32::MAX / radix - MODULUS {
+        if carry > (u32::MAX - MODULUS) / radix {
             carry %= MODULUS;
         }
         carry * radix + value
