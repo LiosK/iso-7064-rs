@@ -99,14 +99,11 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
     }
 
     #[inline(always)]
-    const fn step(carry: u32, value: u32) -> u32 {
+    const fn step(mut carry: u32, value: u32) -> u32 {
         if carry > (u32::MAX - MODULUS) / RADIX {
-            // observed that LLVM better optimizes div-by-const with u64
-            let wide = carry as u64 * RADIX as u64 + value as u64;
-            (wide % MODULUS as u64) as u32
-        } else {
-            carry * RADIX + value
+            carry %= MODULUS;
         }
+        carry * RADIX + value
     }
 }
 
@@ -147,15 +144,12 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
     }
 
     #[inline(always)]
-    const fn step(carry: u32, value: u32) -> u32 {
+    const fn step(mut carry: u32, value: u32) -> u32 {
         let radix = CHARSET_SIZE;
         if carry > (u32::MAX - MODULUS) / radix {
-            // observed that LLVM better optimizes div-by-const with u64
-            let wide = carry as u64 * radix as u64 + value as u64;
-            (wide % MODULUS as u64) as u32
-        } else {
-            carry * radix + value
+            carry %= MODULUS;
         }
+        carry * radix + value
     }
 }
 
