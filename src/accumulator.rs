@@ -49,10 +49,16 @@ pub enum AccumulateResult {
     NotInCharset,
 }
 
+#[cfg(target_pointer_width = "16")]
+type U32Fast = u32;
+
+#[cfg(not(target_pointer_width = "16"))]
+type U32Fast = usize;
+
 /// A generic accumulator for the pure system with a single check character.
 #[derive(Debug, Clone)]
 pub struct PureSingle<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32> {
-    carry: u32,
+    carry: U32Fast,
     suppl: Option<u32>,
 }
 
@@ -86,7 +92,7 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
 
     const fn compute_const(&self) -> [u32; 1] {
         let carry = Self::step(self.carry, 0);
-        let v = MODULUS + 1 - carry % MODULUS;
+        let v = MODULUS + 1 - (carry % MODULUS as U32Fast) as u32;
         [spec_rem(v, MODULUS)]
     }
 
@@ -95,22 +101,22 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
             None => self.carry,
             Some(value) => Self::step(self.carry, value),
         };
-        carry % MODULUS == 1
+        carry % MODULUS as U32Fast == 1
     }
 
     #[inline(always)]
-    const fn step(mut carry: u32, value: u32) -> u32 {
-        if carry > (u32::MAX - MODULUS) / RADIX {
-            carry %= MODULUS;
+    const fn step(mut carry: U32Fast, value: u32) -> U32Fast {
+        if carry > (U32Fast::MAX - MODULUS as U32Fast) / RADIX as U32Fast {
+            carry %= MODULUS as U32Fast;
         }
-        carry * RADIX + value
+        carry * RADIX as U32Fast + value as U32Fast
     }
 }
 
 /// A generic accumulator for the pure system with two check characters.
 #[derive(Debug, Clone)]
 pub struct PureDouble<const MODULUS: u32, const CHARSET_SIZE: u32> {
-    carry: u32,
+    carry: U32Fast,
 }
 
 impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SIZE> {
@@ -135,21 +141,21 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
     const fn compute_const(&self) -> [u32; 2] {
         let radix = CHARSET_SIZE;
         let carry = Self::step(Self::step(self.carry, 0), 0);
-        let v = MODULUS + 1 - carry % MODULUS;
+        let v = MODULUS + 1 - (carry % MODULUS as U32Fast) as u32;
         [v / radix, v % radix]
     }
 
     const fn verify_const(&self) -> bool {
-        self.carry % MODULUS == 1
+        self.carry % MODULUS as U32Fast == 1
     }
 
     #[inline(always)]
-    const fn step(mut carry: u32, value: u32) -> u32 {
-        let radix = CHARSET_SIZE;
-        if carry > (u32::MAX - MODULUS) / radix {
-            carry %= MODULUS;
+    const fn step(mut carry: U32Fast, value: u32) -> U32Fast {
+        let radix = CHARSET_SIZE as U32Fast;
+        if carry > (U32Fast::MAX - MODULUS as U32Fast) / radix {
+            carry %= MODULUS as U32Fast;
         }
-        carry * radix + value
+        carry * radix + value as U32Fast
     }
 }
 
