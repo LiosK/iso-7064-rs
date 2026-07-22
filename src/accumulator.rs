@@ -99,11 +99,8 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
     }
 
     #[inline(always)]
-    const fn step(mut carry: u32, value: u32) -> u32 {
-        if carry > (u32::MAX - MODULUS) / RADIX {
-            carry %= MODULUS;
-        }
-        carry * RADIX + value
+    const fn step(carry: u32, value: u32) -> u32 {
+        step_pure::<MODULUS, RADIX>(carry, value)
     }
 }
 
@@ -144,13 +141,17 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
     }
 
     #[inline(always)]
-    const fn step(mut carry: u32, value: u32) -> u32 {
-        let radix = CHARSET_SIZE;
-        if carry > (u32::MAX - MODULUS) / radix {
-            carry %= MODULUS;
-        }
-        carry * radix + value
+    const fn step(carry: u32, value: u32) -> u32 {
+        step_pure::<MODULUS, CHARSET_SIZE>(carry, value)
     }
+}
+
+#[inline(always)]
+const fn step_pure<const MODULUS: u32, const RADIX: u32>(mut carry: u32, value: u32) -> u32 {
+    if carry > (u32::MAX - MODULUS) / RADIX {
+        carry %= MODULUS;
+    }
+    carry * RADIX + value
 }
 
 /// A generic accumulator for the hybrid system.
