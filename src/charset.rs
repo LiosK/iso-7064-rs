@@ -24,7 +24,7 @@ impl Encoder for Numeric {
     #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
-            ..10 => Some(encode_numeric(v)),
+            ..10 => Some(encode_ascii(v, b'0')),
             _ => None,
         }
     }
@@ -34,7 +34,7 @@ impl Decoder for Numeric {
     #[inline]
     fn decode(&self, c: char) -> Option<u32> {
         match c {
-            '0'..='9' => Some(decode_numeric(c)),
+            '0'..='9' => Some(decode_ascii(c, b'0')),
             _ => None,
         }
     }
@@ -51,7 +51,7 @@ impl Encoder for NumericX {
     #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
-            ..10 => Some(encode_numeric(v)),
+            ..10 => Some(encode_ascii(v, b'0')),
             10 => Some('X'),
             _ => None,
         }
@@ -62,7 +62,7 @@ impl Decoder for NumericX {
     #[inline]
     fn decode(&self, c: char) -> Option<u32> {
         match c {
-            '0'..='9' => Some(decode_numeric(c)),
+            '0'..='9' => Some(decode_ascii(c, b'0')),
             'X' => Some(10),
             _ => None,
         }
@@ -105,7 +105,7 @@ impl Encoder for Alphanumeric {
     #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
-            ..10 => Some(encode_numeric(v)),
+            ..10 => Some(encode_ascii(v, b'0')),
             10..36 => Some(encode_ascii(v, b'A' - 10)),
             _ => None,
         }
@@ -116,7 +116,7 @@ impl Decoder for Alphanumeric {
     #[inline]
     fn decode(&self, c: char) -> Option<u32> {
         match c {
-            '0'..='9' => Some(decode_numeric(c)),
+            '0'..='9' => Some(decode_ascii(c, b'0')),
             'A'..='Z' => Some(decode_ascii(c, b'A' - 10)),
             _ => None,
         }
@@ -134,7 +134,7 @@ impl Encoder for AlphanumericAst {
     #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
-            ..10 => Some(encode_numeric(v)),
+            ..10 => Some(encode_ascii(v, b'0')),
             10..36 => Some(encode_ascii(v, b'A' - 10)),
             36 => Some('*'),
             _ => None,
@@ -146,7 +146,7 @@ impl Decoder for AlphanumericAst {
     #[inline]
     fn decode(&self, c: char) -> Option<u32> {
         match c {
-            '0'..='9' => Some(decode_numeric(c)),
+            '0'..='9' => Some(decode_ascii(c, b'0')),
             'A'..='Z' => Some(decode_ascii(c, b'A' - 10)),
             '*' => Some(36),
             _ => None,
@@ -183,23 +183,13 @@ pub fn decoder_from_fn(f: impl Fn(char) -> Option<u32>) -> impl Decoder {
 }
 
 #[inline(always)]
-fn encode_numeric(v: u32) -> char {
-    char::from(v as u8 | 0x30)
-}
-
-#[inline(always)]
-fn decode_numeric(c: char) -> u32 {
-    u32::from(c) & 0x0F
-}
-
-#[inline(always)]
 fn encode_ascii(v: u32, zero_value: u8) -> char {
     char::from(v as u8 + zero_value)
 }
 
 #[inline(always)]
 fn decode_ascii(c: char, zero_value: u8) -> u32 {
-    u32::from(c) - u32::from(zero_value)
+    u32::from(c).wrapping_sub(u32::from(zero_value))
 }
 
 #[cfg(test)]
