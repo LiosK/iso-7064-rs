@@ -4,10 +4,10 @@
 //! use iso_7064::{accumulator, charset, system::System};
 //!
 //! // Build a custom MOD 11,10 with case-insensitive alphabetic character set.
-//! let my_mod11_10 = System::<1, accumulator::Mod11_10, _, _>::with_charset(
-//!     charset::Alphabetic,
-//!     charset::decoder_from_fn(|c| c.to_digit(36)?.checked_sub(10)),
-//! );
+//! let my_mod11_10 =
+//!     System::<1, accumulator::Mod11_10, _, _>::with_charset(charset::Alphabetic, |c: char| {
+//!         c.to_digit(36)?.checked_sub(10)
+//!     });
 //!
 //! assert_eq!(my_mod11_10.compute("AhJe")?, ['F']);
 //! assert!(my_mod11_10.verify("aHjEf")?);

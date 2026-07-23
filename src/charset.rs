@@ -154,32 +154,30 @@ impl Decoder for AlphanumericAst {
     }
 }
 
-/// Creates an [`Encoder`] with the provided closure as its `encode()` method.
-pub fn encoder_from_fn(f: impl Fn(u32) -> Option<char>) -> impl Encoder {
-    struct FromFn<F>(F);
-
-    impl<F: Fn(u32) -> Option<char>> Encoder for FromFn<F> {
-        #[inline]
-        fn encode(&self, v: u32) -> Option<char> {
-            self.0(v)
-        }
+impl<F: Fn(u32) -> Option<char>> Encoder for F {
+    #[inline]
+    fn encode(&self, v: u32) -> Option<char> {
+        self(v)
     }
+}
 
-    FromFn(f)
+impl<F: Fn(char) -> Option<u32>> Decoder for F {
+    #[inline]
+    fn decode(&self, c: char) -> Option<u32> {
+        self(c)
+    }
+}
+
+/// Creates an [`Encoder`] with the provided closure as its `encode()` method.
+#[deprecated(since = "0.1.6", note = "use closure directly as `Encoder`")]
+pub fn encoder_from_fn(f: impl Fn(u32) -> Option<char>) -> impl Encoder {
+    f
 }
 
 /// Creates a [`Decoder`] with the provided closure as its `decode()` method.
+#[deprecated(since = "0.1.6", note = "use closure directly as `Decoder`")]
 pub fn decoder_from_fn(f: impl Fn(char) -> Option<u32>) -> impl Decoder {
-    struct FromFn<F>(F);
-
-    impl<F: Fn(char) -> Option<u32>> Decoder for FromFn<F> {
-        #[inline]
-        fn decode(&self, c: char) -> Option<u32> {
-            self.0(c)
-        }
-    }
-
-    FromFn(f)
+    f
 }
 
 #[inline(always)]
