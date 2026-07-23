@@ -149,7 +149,7 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
 #[inline(always)]
 const fn step_pure<const MODULUS: u32, const RADIX: u32>(mut carry: u32, value: u32) -> u32 {
     if carry > (u32::MAX - MODULUS) / RADIX {
-        carry %= MODULUS;
+        carry = cold_rem(carry, MODULUS);
     }
     carry * RADIX + value
 }
@@ -206,6 +206,12 @@ const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
 const fn non_zero_spec_rem(lhs: u32, rhs: u32) -> u32 {
     debug_assert!(0 < lhs && lhs < rhs * 2);
     if lhs <= rhs { lhs } else { lhs - rhs }
+}
+
+#[cold]
+#[inline(always)]
+const fn cold_rem(lhs: u32, rhs: u32) -> u32 {
+    lhs % rhs
 }
 
 macro_rules! impl_accumulator_traits {
