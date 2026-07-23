@@ -91,9 +91,7 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
     }
 
     const fn compute_const(&self) -> [u32; 1] {
-        let carry = Self::step(self.carry, 0);
-        #[allow(clippy::unnecessary_cast)]
-        let v = MODULUS + 1 - (carry % MODULUS as PureCarry) as u32;
+        let v = rem_1_pure::<MODULUS>(Self::step(self.carry, 0));
         [spec_rem(v, MODULUS)]
     }
 
@@ -138,9 +136,7 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
 
     const fn compute_const(&self) -> [u32; 2] {
         let radix = CHARSET_SIZE;
-        let carry = Self::step(Self::step(self.carry, 0), 0);
-        #[allow(clippy::unnecessary_cast)]
-        let v = MODULUS + 1 - (carry % MODULUS as PureCarry) as u32;
+        let v = rem_1_pure::<MODULUS>(Self::step(Self::step(self.carry, 0), 0));
         [v / radix, v % radix]
     }
 
@@ -169,6 +165,12 @@ const fn step_pure<const MODULUS: u32, const RADIX: u32>(
         carry = cold_rem::<MODULUS>(carry);
     }
     carry * RADIX as PureCarry + value as PureCarry
+}
+
+#[inline(always)]
+#[allow(clippy::unnecessary_cast)]
+const fn rem_1_pure<const MODULUS: u32>(carry: PureCarry) -> u32 {
+    MODULUS + 1 - (carry % MODULUS as PureCarry) as u32
 }
 
 /// A generic accumulator for the hybrid system.
