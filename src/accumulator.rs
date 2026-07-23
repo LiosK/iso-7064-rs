@@ -49,7 +49,11 @@ pub enum AccumulateResult {
     NotInCharset,
 }
 
+#[cfg(target_pointer_width = "16")]
 type PureCarry = u32;
+
+#[cfg(not(target_pointer_width = "16"))]
+type PureCarry = usize;
 
 /// A generic accumulator for the pure system with a single check character.
 #[derive(Debug, Clone)]
