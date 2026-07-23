@@ -65,8 +65,7 @@ where
     /// ```
     #[cfg(feature = "alloc")]
     pub fn protect(&self, s: &mut alloc::string::String) -> Result<(), ComputeError<char>> {
-        s.extend(self.compute(s)?);
-        Ok(())
+        self.compute(s).map(|cc| s.extend(cc))
     }
 
     /// Computes the check characters for the string `s` and appends them, ignoring any invalid
@@ -141,11 +140,10 @@ where
         chars: impl IntoIterator<Item = char>,
     ) -> Result<[char; N_CC], ComputeError<char>> {
         let mut acc = Acc::default();
-        for (pos, c) in chars.into_iter().enumerate() {
-            match self.accumulate_char(&mut acc, c) {
-                AccumulateResult::Processed => (),
-                _ => return Err(ComputeError { val: c, pos }),
-            }
+        for (pos, val) in chars.into_iter().enumerate() {
+            let AccumulateResult::Processed = self.accumulate_char(&mut acc, val) else {
+                return Err(ComputeError { val, pos });
+            };
         }
         Ok(self.compute_char(&mut acc))
     }
@@ -170,11 +168,10 @@ where
         values: impl IntoIterator<Item = u32>,
     ) -> Result<[u32; N_CC], ComputeError<u32>> {
         let mut acc = Acc::default();
-        for (pos, a) in values.into_iter().enumerate() {
-            match acc.accumulate(a) {
-                AccumulateResult::Processed => (),
-                _ => return Err(ComputeError { val: a, pos }),
-            }
+        for (pos, val) in values.into_iter().enumerate() {
+            let AccumulateResult::Processed = acc.accumulate(val) else {
+                return Err(ComputeError { val, pos });
+            };
         }
         Ok(acc.compute())
     }
@@ -239,25 +236,7 @@ where
         &self,
         chars: impl IntoIterator<Item = char>,
     ) -> Result<bool, VerifyError<char>> {
-        let mut acc = Acc::default();
-        let mut it = chars.into_iter().enumerate();
-        while let Some((pos, c)) = it.next() {
-            match self.accumulate_char(&mut acc, c) {
-                AccumulateResult::Processed => (),
-                AccumulateResult::SupplFound => match it.next() {
-                    None => break,
-                    Some(_) => {
-                        let kind = VerifyErrorKind::UnexpectedSuppl;
-                        return Err(VerifyError { val: c, pos, kind });
-                    }
-                },
-                AccumulateResult::NotInCharset => {
-                    let kind = VerifyErrorKind::NotInCharset;
-                    return Err(VerifyError { val: c, pos, kind });
-                }
-            }
-        }
-        Ok(acc.verify())
+        self.verify_from_iter(chars, |acc, v| self.accumulate_char(acc, v))
     }
 
     /// Verifies whether the check character values in the iterator of numerical values are valid.
@@ -280,21 +259,29 @@ where
         &self,
         values: impl IntoIterator<Item = u32>,
     ) -> Result<bool, VerifyError<u32>> {
+        self.verify_from_iter(values, |acc, v| acc.accumulate(v))
+    }
+
+    fn verify_from_iter<T: Copy>(
+        &self,
+        iter: impl IntoIterator<Item = T>,
+        accumulate: impl Fn(&mut Acc, T) -> AccumulateResult,
+    ) -> Result<bool, VerifyError<T>> {
         let mut acc = Acc::default();
-        let mut it = values.into_iter().enumerate();
-        while let Some((pos, a)) = it.next() {
-            match acc.accumulate(a) {
+        let mut it = iter.into_iter().enumerate();
+        while let Some((pos, val)) = it.next() {
+            match accumulate(&mut acc, val) {
                 AccumulateResult::Processed => (),
                 AccumulateResult::SupplFound => match it.next() {
                     None => break,
                     Some(_) => {
                         let kind = VerifyErrorKind::UnexpectedSuppl;
-                        return Err(VerifyError { val: a, pos, kind });
+                        return Err(VerifyError { val, pos, kind });
                     }
                 },
                 AccumulateResult::NotInCharset => {
                     let kind = VerifyErrorKind::NotInCharset;
-                    return Err(VerifyError { val: a, pos, kind });
+                    return Err(VerifyError { val, pos, kind });
                 }
             }
         }
