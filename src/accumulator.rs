@@ -49,10 +49,12 @@ pub enum AccumulateResult {
     NotInCharset,
 }
 
+type PureCarry = u32;
+
 /// A generic accumulator for the pure system with a single check character.
 #[derive(Debug, Clone)]
 pub struct PureSingle<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32> {
-    carry: u32,
+    carry: PureCarry,
     suppl: Option<u32>,
 }
 
@@ -86,7 +88,8 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
 
     const fn compute_const(&self) -> [u32; 1] {
         let carry = Self::step(self.carry, 0);
-        let v = MODULUS + 1 - carry % MODULUS;
+        #[allow(clippy::unnecessary_cast)]
+        let v = MODULUS + 1 - (carry % MODULUS as PureCarry) as u32;
         [spec_rem(v, MODULUS)]
     }
 
@@ -95,11 +98,11 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
             None => self.carry,
             Some(value) => Self::step(self.carry, value),
         };
-        carry % MODULUS == 1
+        carry % MODULUS as PureCarry == 1
     }
 
     #[inline(always)]
-    const fn step(carry: u32, value: u32) -> u32 {
+    const fn step(carry: PureCarry, value: u32) -> PureCarry {
         step_pure::<MODULUS, RADIX>(carry, value)
     }
 }
@@ -107,7 +110,7 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
 /// A generic accumulator for the pure system with two check characters.
 #[derive(Debug, Clone)]
 pub struct PureDouble<const MODULUS: u32, const CHARSET_SIZE: u32> {
-    carry: u32,
+    carry: PureCarry,
 }
 
 impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SIZE> {
@@ -132,26 +135,36 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
     const fn compute_const(&self) -> [u32; 2] {
         let radix = CHARSET_SIZE;
         let carry = Self::step(Self::step(self.carry, 0), 0);
-        let v = MODULUS + 1 - carry % MODULUS;
+        #[allow(clippy::unnecessary_cast)]
+        let v = MODULUS + 1 - (carry % MODULUS as PureCarry) as u32;
         [v / radix, v % radix]
     }
 
     const fn verify_const(&self) -> bool {
-        self.carry % MODULUS == 1
+        self.carry % MODULUS as PureCarry == 1
     }
 
     #[inline(always)]
-    const fn step(carry: u32, value: u32) -> u32 {
+    const fn step(carry: PureCarry, value: u32) -> PureCarry {
         step_pure::<MODULUS, CHARSET_SIZE>(carry, value)
     }
 }
 
 #[inline(always)]
-const fn step_pure<const MODULUS: u32, const RADIX: u32>(mut carry: u32, value: u32) -> u32 {
-    if carry > (u32::MAX - MODULUS) / RADIX {
-        carry = cold_rem(carry, MODULUS);
+const fn step_pure<const MODULUS: u32, const RADIX: u32>(
+    mut carry: PureCarry,
+    value: u32,
+) -> PureCarry {
+    if carry > (PureCarry::MAX - MODULUS as PureCarry) / RADIX as PureCarry {
+        #[cold]
+        #[inline(always)]
+        const fn cold_rem<const MODULUS: u32>(carry: PureCarry) -> PureCarry {
+            carry % MODULUS as PureCarry
+        }
+
+        carry = cold_rem::<MODULUS>(carry);
     }
-    carry * RADIX + value
+    carry * RADIX as PureCarry + value as PureCarry
 }
 
 /// A generic accumulator for the hybrid system.
@@ -206,12 +219,6 @@ const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
 const fn non_zero_spec_rem(lhs: u32, rhs: u32) -> u32 {
     debug_assert!(0 < lhs && lhs < rhs * 2);
     if lhs <= rhs { lhs } else { lhs - rhs }
-}
-
-#[cold]
-#[inline(always)]
-const fn cold_rem(lhs: u32, rhs: u32) -> u32 {
-    lhs % rhs
 }
 
 macro_rules! impl_accumulator_traits {
