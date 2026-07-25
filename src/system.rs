@@ -20,8 +20,8 @@ use core::{error, fmt, marker};
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-use super::accumulator::{self, AccumulateResult, Accumulator};
-use super::charset::{self, Decoder, Encoder};
+use crate::accumulator::{self, AccumulateResult, Accumulator};
+use crate::charset::{self, Decoder, Encoder};
 
 /// A generic facade structure combining [`Accumulator`] and character set into a check character
 /// system interface.
