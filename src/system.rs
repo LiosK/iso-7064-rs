@@ -23,6 +23,18 @@ extern crate alloc;
 use crate::accumulator::{self, AccumulateResult, Accumulator};
 use crate::charset::{self, Decoder, Encodable, Encoder};
 
+/// The check characters computed by a [`System`].
+///
+/// This is usually `[char; 1]` or `[char; 2]`, depending on the number of check characters
+/// specified by the system.
+pub type CheckChars<Acc> = <CheckCharValues<Acc> as Encodable>::Encoded;
+
+/// The numerical values of the check characters computed by a [`System`].
+///
+/// This is usually `[u32; 1]` or `[u32; 2]`, depending on the number of check characters specified
+/// by the system.
+pub type CheckCharValues<Acc> = <Acc as Accumulator>::Computed;
+
 /// A generic facade structure combining [`Accumulator`] and character set into a check character
 /// system interface.
 #[derive(Debug, Default)]
@@ -87,10 +99,6 @@ where
 
     /// Computes the check characters for the string `s`.
     ///
-    /// # Returns
-    ///
-    /// Returns the check characters as `[char; 1]` or `[char; 2]`.
-    ///
     /// # Errors
     ///
     /// Returns a [`ComputeError`] if any character is not in the character set.
@@ -103,18 +111,11 @@ where
     /// assert_eq!(MOD37_2.compute("5S7U")?, ['G']);
     /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
     /// ```
-    pub fn compute(
-        &self,
-        s: &str,
-    ) -> Result<<Acc::Computed as Encodable>::Encoded, ComputeError<char>> {
+    pub fn compute(&self, s: &str) -> Result<CheckChars<Acc>, ComputeError<char>> {
         self.compute_from_chars(s.chars())
     }
 
     /// Computes the check characters for the string `s`, ignoring any invalid characters.
-    ///
-    /// # Returns
-    ///
-    /// Returns the check characters as `[char; 1]` or `[char; 2]`.
     ///
     /// # Examples
     ///
@@ -123,7 +124,7 @@ where
     ///
     /// assert_eq!(MOD37_2.compute_lax("5S=7U"), ['G']);
     /// ```
-    pub fn compute_lax(&self, s: &str) -> <Acc::Computed as Encodable>::Encoded {
+    pub fn compute_lax(&self, s: &str) -> CheckChars<Acc> {
         let mut acc = Acc::default();
         for c in s.chars() {
             let _ = self.accumulate_char(&mut acc, c);
@@ -132,10 +133,6 @@ where
     }
 
     /// Computes the check characters from an iterator of characters.
-    ///
-    /// # Returns
-    ///
-    /// Returns the check characters as `[char; 1]` or `[char; 2]`.
     ///
     /// # Errors
     ///
@@ -153,7 +150,7 @@ where
     pub fn compute_from_chars(
         &self,
         chars: impl IntoIterator<Item = char>,
-    ) -> Result<<Acc::Computed as Encodable>::Encoded, ComputeError<char>> {
+    ) -> Result<CheckChars<Acc>, ComputeError<char>> {
         let mut acc = Acc::default();
         for (pos, val) in chars.into_iter().enumerate() {
             let AccumulateResult::Processed = self.accumulate_char(&mut acc, val) else {
@@ -164,10 +161,6 @@ where
     }
 
     /// Computes the check character values from an iterator of numerical values.
-    ///
-    /// # Returns
-    ///
-    /// Returns the check characters as `[u32; 1]` or `[u32; 2]`.
     ///
     /// # Errors
     ///
@@ -185,7 +178,7 @@ where
     pub fn compute_from_values(
         &self,
         values: impl IntoIterator<Item = u32>,
-    ) -> Result<Acc::Computed, ComputeError<u32>> {
+    ) -> Result<CheckCharValues<Acc>, ComputeError<u32>> {
         let mut acc = Acc::default();
         for (pos, val) in values.into_iter().enumerate() {
             let AccumulateResult::Processed = acc.accumulate(val) else {
@@ -315,7 +308,7 @@ where
         }
     }
 
-    fn compute_char(&self, acc: &mut Acc) -> <Acc::Computed as Encodable>::Encoded {
+    fn compute_char(&self, acc: &mut Acc) -> CheckChars<Acc> {
         const ERR: &str = "invalid charset implementation";
         acc.compute().to_encoded(&self.encoder).expect(ERR)
     }
