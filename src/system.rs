@@ -115,9 +115,9 @@ where
     pub fn compute_lax(&self, s: &str) -> [char; N_CC] {
         let mut acc = Acc::default();
         for c in s.chars() {
-            let _ = self.accumulate_char(&mut acc, c);
+            let _ = c.accumulate_to(&mut acc, &self.decoder);
         }
-        self.compute_char(&mut acc)
+        acc.compute().map(|v| self.force_encode(v))
     }
 
     /// Computes the check characters from an iterator of characters.
@@ -141,11 +141,11 @@ where
     ) -> Result<[char; N_CC], ComputeError<char>> {
         let mut acc = Acc::default();
         for (pos, val) in chars.into_iter().enumerate() {
-            let AccumulateResult::Processed = self.accumulate_char(&mut acc, val) else {
+            let AccumulateResult::Processed = val.accumulate_to(&mut acc, &self.decoder) else {
                 return Err(ComputeError { val, pos });
             };
         }
-        Ok(self.compute_char(&mut acc))
+        Ok(acc.compute().map(|v| self.force_encode(v)))
     }
 
     /// Computes the check character values from an iterator of numerical values.
@@ -169,7 +169,7 @@ where
     ) -> Result<[u32; N_CC], ComputeError<u32>> {
         let mut acc = Acc::default();
         for (pos, val) in values.into_iter().enumerate() {
-            let AccumulateResult::Processed = acc.accumulate(val) else {
+            let AccumulateResult::Processed = val.accumulate_to(&mut acc, &self.decoder) else {
                 return Err(ComputeError { val, pos });
             };
         }
@@ -211,7 +211,7 @@ where
     pub fn verify_lax(&self, s: &str) -> bool {
         let mut acc = Acc::default();
         for c in s.chars() {
-            let _ = self.accumulate_char(&mut acc, c);
+            let _ = c.accumulate_to(&mut acc, &self.decoder);
         }
         acc.verify()
     }
@@ -236,7 +236,7 @@ where
         &self,
         chars: impl IntoIterator<Item = char>,
     ) -> Result<bool, VerifyError<char>> {
-        self.verify_from_iter(chars, |acc, v| self.accumulate_char(acc, v))
+        self.verify_from_iter(chars)
     }
 
     /// Verifies whether the check character values in the iterator of numerical values are valid.
@@ -259,18 +259,27 @@ where
         &self,
         values: impl IntoIterator<Item = u32>,
     ) -> Result<bool, VerifyError<u32>> {
-        self.verify_from_iter(values, |acc, v| acc.accumulate(v))
+        self.verify_from_iter(values)
     }
 
-    fn verify_from_iter<T: Copy>(
+    fn force_encode(&self, v: u32) -> char {
+        const ERR: &str = "invalid charset implementation";
+        self.encoder.encode(v).expect(ERR)
+    }
+}
+
+impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
+where
+    Acc: Accumulator + Default,
+{
+    fn verify_from_iter<T: Accumulatable<Dec> + Copy>(
         &self,
         iter: impl IntoIterator<Item = T>,
-        accumulate: impl Fn(&mut Acc, T) -> AccumulateResult,
     ) -> Result<bool, VerifyError<T>> {
         let mut acc = Acc::default();
         let mut it = iter.into_iter().enumerate();
         while let Some((pos, val)) = it.next() {
-            match accumulate(&mut acc, val) {
+            match val.accumulate_to(&mut acc, &self.decoder) {
                 AccumulateResult::Processed => (),
                 AccumulateResult::SupplFound => match it.next() {
                     None => break,
@@ -287,18 +296,26 @@ where
         }
         Ok(acc.verify())
     }
+}
 
+trait Accumulatable<Dec> {
+    fn accumulate_to(self, acc: &mut impl Accumulator, decoder: &Dec) -> AccumulateResult;
+}
+
+impl<Dec> Accumulatable<Dec> for u32 {
     #[inline]
-    fn accumulate_char(&self, acc: &mut Acc, c: char) -> AccumulateResult {
-        match self.decoder.decode(c) {
-            Some(a) => acc.accumulate(a),
+    fn accumulate_to(self, acc: &mut impl Accumulator, _decoder: &Dec) -> AccumulateResult {
+        acc.accumulate(self)
+    }
+}
+
+impl<Dec: Decoder> Accumulatable<Dec> for char {
+    #[inline]
+    fn accumulate_to(self, acc: &mut impl Accumulator, decoder: &Dec) -> AccumulateResult {
+        match decoder.decode(self) {
+            Some(value) => acc.accumulate(value),
             None => AccumulateResult::NotInCharset,
         }
-    }
-
-    fn compute_char(&self, acc: &mut Acc) -> [char; N_CC] {
-        const ERR: &str = "invalid charset implementation";
-        acc.compute().map(|v| self.encoder.encode(v).expect(ERR))
     }
 }
 
