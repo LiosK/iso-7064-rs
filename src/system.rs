@@ -113,11 +113,8 @@ where
     /// assert_eq!(MOD37_2.compute_lax("5S=7U"), ['G']);
     /// ```
     pub fn compute_lax(&self, s: &str) -> [char; N_CC] {
-        let mut acc = Acc::default();
-        for c in s.chars() {
-            let _ = c.accumulate_to(&mut acc, &self.decoder);
-        }
-        acc.compute().map(|v| self.force_encode(v))
+        let vs = self.lax_from_iter(s.chars()).compute();
+        vs.map(|v| self.force_encode(v))
     }
 
     /// Computes the check characters from an iterator of characters.
@@ -139,13 +136,8 @@ where
         &self,
         chars: impl IntoIterator<Item = char>,
     ) -> Result<[char; N_CC], ComputeError<char>> {
-        let mut acc = Acc::default();
-        for (pos, val) in chars.into_iter().enumerate() {
-            let AccumulateResult::Processed = val.accumulate_to(&mut acc, &self.decoder) else {
-                return Err(ComputeError { val, pos });
-            };
-        }
-        Ok(acc.compute().map(|v| self.force_encode(v)))
+        self.compute_from_iter(chars)
+            .map(|vs| vs.map(|v| self.force_encode(v)))
     }
 
     /// Computes the check character values from an iterator of numerical values.
@@ -167,13 +159,7 @@ where
         &self,
         values: impl IntoIterator<Item = u32>,
     ) -> Result<[u32; N_CC], ComputeError<u32>> {
-        let mut acc = Acc::default();
-        for (pos, val) in values.into_iter().enumerate() {
-            let AccumulateResult::Processed = val.accumulate_to(&mut acc, &self.decoder) else {
-                return Err(ComputeError { val, pos });
-            };
-        }
-        Ok(acc.compute())
+        self.compute_from_iter(values)
     }
 
     /// Verifies whether the check characters in the string `s` are valid.
@@ -209,11 +195,7 @@ where
     /// assert!(MOD661_26.verify_lax("MV-EIS:JV"));
     /// ```
     pub fn verify_lax(&self, s: &str) -> bool {
-        let mut acc = Acc::default();
-        for c in s.chars() {
-            let _ = c.accumulate_to(&mut acc, &self.decoder);
-        }
-        acc.verify()
+        self.lax_from_iter(s.chars()).verify()
     }
 
     /// Verifies whether the check characters in the iterator of characters are valid.
@@ -272,6 +254,19 @@ impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
 where
     Acc: Accumulator + Default,
 {
+    fn compute_from_iter<T: Accumulatable<Dec> + Copy>(
+        &self,
+        iter: impl IntoIterator<Item = T>,
+    ) -> Result<Acc::Computed, ComputeError<T>> {
+        let mut acc = Acc::default();
+        for (pos, val) in iter.into_iter().enumerate() {
+            let AccumulateResult::Processed = val.accumulate_to(&mut acc, &self.decoder) else {
+                return Err(ComputeError { val, pos });
+            };
+        }
+        Ok(acc.compute())
+    }
+
     fn verify_from_iter<T: Accumulatable<Dec> + Copy>(
         &self,
         iter: impl IntoIterator<Item = T>,
@@ -295,6 +290,14 @@ where
             }
         }
         Ok(acc.verify())
+    }
+
+    fn lax_from_iter<T: Accumulatable<Dec>>(&self, iter: impl IntoIterator<Item = T>) -> Acc {
+        let mut acc = Acc::default();
+        for val in iter {
+            let _ = val.accumulate_to(&mut acc, &self.decoder);
+        }
+        acc
     }
 }
 
