@@ -443,7 +443,7 @@ mod tests {
         next_s: impl Fn(u32, u32) -> u32,
         next_p: impl Fn(u32) -> u32,
     ) where
-        Acc: Accumulator<Computed = [u32; N_CC]> + Default + Clone,
+        Acc: Accumulator + Default + Clone,
     {
         use rand::{RngExt as _, rngs::SmallRng};
         let mut rng: SmallRng = rand::make_rng();
@@ -459,7 +459,7 @@ mod tests {
 
                 assert_eq!(acc.verify(), s % modulus == 1);
 
-                let cc = acc.compute();
+                let cc = acc.compute().into_iter();
                 let cc_expected: &[u32] = match N_CC {
                     1 => &[(modulus + 1 - p) % modulus],
                     2 => {
@@ -468,10 +468,10 @@ mod tests {
                     }
                     _ => unimplemented!(),
                 };
-                assert_eq!(&cc, cc_expected);
+                assert!(cc.eq(cc_expected.iter().copied()));
 
                 let mut clone = acc.clone();
-                for value in cc {
+                for &value in cc_expected {
                     clone.accumulate(value);
                 }
                 assert!(clone.verify())
@@ -481,7 +481,7 @@ mod tests {
 
     fn random_inner_pure<const N_CC: usize, Acc>(modulus: u32, radix: u32, charset_size: u32)
     where
-        Acc: Accumulator<Computed = [u32; N_CC]> + Default + Clone,
+        Acc: Accumulator + Default + Clone,
     {
         let next_s = |p, a| p + a;
         let next_p = move |s| s * radix % modulus;
@@ -490,7 +490,7 @@ mod tests {
 
     fn random_inner_hybrid<Acc>(m: u32)
     where
-        Acc: Accumulator<Computed = [u32; 1]> + Default + Clone,
+        Acc: Accumulator + Default + Clone,
     {
         let next_s = |p, a| p + a;
         let next_p = move |s| match s % m {
