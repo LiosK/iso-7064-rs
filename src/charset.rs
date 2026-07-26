@@ -168,18 +168,6 @@ impl<F: Fn(char) -> Option<u32>> Decoder for F {
     }
 }
 
-/// Creates an [`Encoder`] with the provided closure as its `encode()` method.
-#[deprecated(since = "0.1.6", note = "use closure directly as `Encoder`")]
-pub fn encoder_from_fn(f: impl Fn(u32) -> Option<char>) -> impl Encoder {
-    f
-}
-
-/// Creates a [`Decoder`] with the provided closure as its `decode()` method.
-#[deprecated(since = "0.1.6", note = "use closure directly as `Decoder`")]
-pub fn decoder_from_fn(f: impl Fn(char) -> Option<u32>) -> impl Decoder {
-    f
-}
-
 #[inline(always)]
 fn encode_ascii(v: u32, zero_value: u8) -> char {
     char::from(v as u8 + zero_value)
