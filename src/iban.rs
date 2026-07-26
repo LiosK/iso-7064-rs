@@ -123,7 +123,7 @@ impl Iban {
         let cc = take_two(&mut iter).ok_or(IbanError {
             kind: IbanErrorKind::TooShort,
         })?;
-        Ok(cc == self.compute_inner(ctry, iter)?)
+        Ok(self.compute_inner(ctry, iter)? == cc)
     }
 
     fn compute_inner(
