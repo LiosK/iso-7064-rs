@@ -10,7 +10,7 @@
 use core::{error, fmt};
 
 use crate::accumulator::{Accumulator as _, Mod97_10};
-use crate::charset::{Encodable as _, Numeric};
+use crate::charset::{Encoder as _, Numeric};
 
 /// The IBAN variant of MOD 97-10.
 pub const IBAN: Iban = Iban {};
@@ -169,7 +169,7 @@ impl Iban {
         }
         debug_assert_eq!(pos, 2);
 
-        Ok(acc.compute().to_encoded(&Numeric).unwrap())
+        Ok(acc.compute().map(|v| Numeric.encode(v).unwrap()))
     }
 }
 

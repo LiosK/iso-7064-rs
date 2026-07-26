@@ -178,27 +178,6 @@ fn decode_ascii(c: char, zero_value: u8) -> u32 {
     u32::from(c).wrapping_sub(u32::from(zero_value))
 }
 
-/// A container whose values can be encoded with an [`Encoder`].
-pub trait Encodable {
-    /// The resulting encoded type.
-    type Encoded: IntoIterator<Item = char>;
-
-    /// Encodes the contents of `self`, or returns `None` if any value fails to encode.
-    fn to_encoded(&self, encoder: &impl Encoder) -> Option<Self::Encoded>;
-}
-
-impl<const N: usize> Encodable for [u32; N] {
-    type Encoded = [char; N];
-
-    fn to_encoded(&self, encoder: &impl Encoder) -> Option<Self::Encoded> {
-        let mut encoded = [char::default(); N];
-        for (p, v) in encoded.iter_mut().zip(self) {
-            *p = encoder.encode(*v)?;
-        }
-        Some(encoded)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -246,28 +225,6 @@ mod tests {
                     assert!(dec.decode(c).is_none());
                 }
             }
-        }
-    }
-
-    #[test]
-    fn encodable_ok() {
-        let (enc, charset) = (Numeric, "0123456789");
-        for (n, c) in charset.chars().enumerate() {
-            let v = n as u32;
-            assert_eq!([v].to_encoded(&enc).unwrap(), [c]);
-            assert_eq!([v, v].to_encoded(&enc).unwrap(), [c, c]);
-        }
-    }
-
-    #[test]
-    fn encodable_err() {
-        let (enc, charset) = (Numeric, "0123456789");
-        for n in (charset.chars().count()..).take(1024) {
-            let v = n as u32;
-            assert!([v].to_encoded(&enc).is_none());
-            assert!([v, v].to_encoded(&enc).is_none());
-            assert!([0, v].to_encoded(&enc).is_none());
-            assert!([v, 0].to_encoded(&enc).is_none());
         }
     }
 }

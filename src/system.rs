@@ -5,7 +5,7 @@
 //!
 //! // Build a custom MOD 11,10 with case-insensitive alphabetic character set.
 //! let my_mod11_10 =
-//!     System::<accumulator::Mod11_10, _, _>::with_charset(charset::Alphabetic, |c: char| {
+//!     System::<1, accumulator::Mod11_10, _, _>::with_charset(charset::Alphabetic, |c: char| {
 //!         c.to_digit(36)?.checked_sub(10)
 //!     });
 //!
@@ -21,32 +21,20 @@ use core::{error, fmt, marker};
 extern crate alloc;
 
 use crate::accumulator::{self, AccumulateResult, Accumulator};
-use crate::charset::{self, Decoder, Encodable, Encoder};
-
-/// The check characters computed by a [`System`].
-///
-/// This is usually `[char; 1]` or `[char; 2]`, depending on the number of check characters
-/// specified by the system.
-pub type CheckChars<Acc> = <CheckCharValues<Acc> as Encodable>::Encoded;
-
-/// The numerical values of the check characters computed by a [`System`].
-///
-/// This is usually `[u32; 1]` or `[u32; 2]`, depending on the number of check characters specified
-/// by the system.
-pub type CheckCharValues<Acc> = <Acc as Accumulator>::Computed;
+use crate::charset::{self, Decoder, Encoder};
 
 /// A generic facade structure combining [`Accumulator`] and character set into a check character
 /// system interface.
 #[derive(Debug, Default)]
-pub struct System<Acc, Enc, Dec> {
+pub struct System<const N_CC: usize, Acc, Enc, Dec> {
     _acc: marker::PhantomData<Acc>,
     encoder: Enc,
     decoder: Dec,
 }
 
-impl<Acc, Enc, Dec> System<Acc, Enc, Dec>
+impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
 where
-    Acc: Accumulator<Computed: Encodable> + Default,
+    Acc: Accumulator<Computed = [u32; N_CC]> + Default,
     Enc: Encoder,
     Dec: Decoder,
 {
@@ -111,7 +99,7 @@ where
     /// assert_eq!(MOD37_2.compute("5S7U")?, ['G']);
     /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
     /// ```
-    pub fn compute(&self, s: &str) -> Result<CheckChars<Acc>, ComputeError<char>> {
+    pub fn compute(&self, s: &str) -> Result<[char; N_CC], ComputeError<char>> {
         self.compute_from_chars(s.chars())
     }
 
@@ -124,7 +112,7 @@ where
     ///
     /// assert_eq!(MOD37_2.compute_lax("5S=7U"), ['G']);
     /// ```
-    pub fn compute_lax(&self, s: &str) -> CheckChars<Acc> {
+    pub fn compute_lax(&self, s: &str) -> [char; N_CC] {
         let mut acc = Acc::default();
         for c in s.chars() {
             let _ = self.accumulate_char(&mut acc, c);
@@ -150,7 +138,7 @@ where
     pub fn compute_from_chars(
         &self,
         chars: impl IntoIterator<Item = char>,
-    ) -> Result<CheckChars<Acc>, ComputeError<char>> {
+    ) -> Result<[char; N_CC], ComputeError<char>> {
         let mut acc = Acc::default();
         for (pos, val) in chars.into_iter().enumerate() {
             let AccumulateResult::Processed = self.accumulate_char(&mut acc, val) else {
@@ -178,7 +166,7 @@ where
     pub fn compute_from_values(
         &self,
         values: impl IntoIterator<Item = u32>,
-    ) -> Result<CheckCharValues<Acc>, ComputeError<u32>> {
+    ) -> Result<[u32; N_CC], ComputeError<u32>> {
         let mut acc = Acc::default();
         for (pos, val) in values.into_iter().enumerate() {
             let AccumulateResult::Processed = acc.accumulate(val) else {
@@ -308,35 +296,37 @@ where
         }
     }
 
-    fn compute_char(&self, acc: &mut Acc) -> CheckChars<Acc> {
+    fn compute_char(&self, acc: &mut Acc) -> [char; N_CC] {
         const ERR: &str = "invalid charset implementation";
-        acc.compute().to_encoded(&self.encoder).expect(ERR)
+        acc.compute().map(|v| self.encoder.encode(v).expect(ERR))
     }
 }
 
 /// The ISO/IEC 7064, MOD 11-2 pure system with a single check character.
-pub type Mod11_2 = System<accumulator::Mod11_2, charset::NumericX, charset::NumericX>;
+pub type Mod11_2 = System<1, accumulator::Mod11_2, charset::NumericX, charset::NumericX>;
 
 /// The ISO/IEC 7064, MOD 37-2 pure system with a single check character.
-pub type Mod37_2 = System<accumulator::Mod37_2, charset::AlphanumericAst, charset::AlphanumericAst>;
+pub type Mod37_2 =
+    System<1, accumulator::Mod37_2, charset::AlphanumericAst, charset::AlphanumericAst>;
 
 /// The ISO/IEC 7064, MOD 97-10 pure system with two check characters.
-pub type Mod97_10 = System<accumulator::Mod97_10, charset::Numeric, charset::Numeric>;
+pub type Mod97_10 = System<2, accumulator::Mod97_10, charset::Numeric, charset::Numeric>;
 
 /// The ISO/IEC 7064, MOD 661-26 pure system with two check characters.
-pub type Mod661_26 = System<accumulator::Mod661_26, charset::Alphabetic, charset::Alphabetic>;
+pub type Mod661_26 = System<2, accumulator::Mod661_26, charset::Alphabetic, charset::Alphabetic>;
 
 /// The ISO/IEC 7064, MOD 1271-36 pure system with two check characters.
-pub type Mod1271_36 = System<accumulator::Mod1271_36, charset::Alphanumeric, charset::Alphanumeric>;
+pub type Mod1271_36 =
+    System<2, accumulator::Mod1271_36, charset::Alphanumeric, charset::Alphanumeric>;
 
 /// The ISO/IEC 7064, MOD 11,10 hybrid system.
-pub type Mod11_10 = System<accumulator::Mod11_10, charset::Numeric, charset::Numeric>;
+pub type Mod11_10 = System<1, accumulator::Mod11_10, charset::Numeric, charset::Numeric>;
 
 /// The ISO/IEC 7064, MOD 27,26 hybrid system.
-pub type Mod27_26 = System<accumulator::Mod27_26, charset::Alphabetic, charset::Alphabetic>;
+pub type Mod27_26 = System<1, accumulator::Mod27_26, charset::Alphabetic, charset::Alphabetic>;
 
 /// The ISO/IEC 7064, MOD 37,36 hybrid system.
-pub type Mod37_36 = System<accumulator::Mod37_36, charset::Alphanumeric, charset::Alphanumeric>;
+pub type Mod37_36 = System<1, accumulator::Mod37_36, charset::Alphanumeric, charset::Alphanumeric>;
 
 /// An error returned when check character computation fails.
 #[derive(Debug)]
