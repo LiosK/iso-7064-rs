@@ -21,7 +21,7 @@ use core::{error, fmt, marker};
 extern crate alloc;
 
 use crate::accumulator::{self, AccumulateResult, Accumulator};
-use crate::charset::{self, Decoder, Encoder};
+use crate::charset::{self, Decoder, Encodable as _, Encoder};
 
 /// A generic facade structure combining [`Accumulator`] and character set into a check character
 /// system interface.
@@ -298,7 +298,7 @@ where
 
     fn compute_char(&self, acc: &mut Acc) -> [char; N_CC] {
         const ERR: &str = "invalid charset implementation";
-        acc.compute().map(|a| self.encoder.encode(a).expect(ERR))
+        acc.compute().to_encoded(&self.encoder).expect(ERR)
     }
 }
 
