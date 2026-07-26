@@ -92,6 +92,8 @@ mod tests {
 
     #[test]
     fn examples_mod_11_2() {
+        let _: [char; 1] = MOD11_2.compute("0794").unwrap();
+
         assert_eq!(MOD11_2.compute("0794").unwrap(), ['0']);
         assert_eq!(MOD11_2.compute_lax("0794"), ['0']);
         assert_eq!(MOD11_2.compute_lax("{0-7-9-4}"), ['0']);
@@ -111,6 +113,8 @@ mod tests {
 
     #[test]
     fn examples_mod_97_10() {
+        let _: [char; 2] = MOD97_10.compute("794").unwrap();
+
         assert_eq!(MOD97_10.compute("794").unwrap(), ['4', '4']);
         assert_eq!(MOD97_10.compute_lax("794"), ['4', '4']);
         assert_eq!(MOD97_10.compute_lax("{7-9-4}"), ['4', '4']);
@@ -122,6 +126,8 @@ mod tests {
 
     #[test]
     fn examples_mod_1271_36() {
+        let _: [char; 2] = MOD1271_36.compute("ISO79").unwrap();
+
         assert_eq!(MOD1271_36.compute("ISO79").unwrap(), ['3', 'W']);
         assert_eq!(MOD1271_36.compute_lax("ISO79"), ['3', 'W']);
         assert_eq!(MOD1271_36.compute_lax("ISO 79"), ['3', 'W']);
@@ -135,6 +141,8 @@ mod tests {
 
     #[test]
     fn examples_mod_11_10() {
+        let _: [char; 1] = MOD11_10.compute("0794").unwrap();
+
         assert_eq!(MOD11_10.compute("0794").unwrap(), ['5']);
         assert_eq!(MOD11_10.compute_lax("0794"), ['5']);
         assert_eq!(MOD11_10.compute_lax("{0-7-9-4}"), ['5']);
