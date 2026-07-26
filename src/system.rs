@@ -38,15 +38,6 @@ where
     Enc: Encoder,
     Dec: Decoder,
 {
-    /// Creates an instance with [`Encoder`] and [`Decoder`].
-    pub const fn with_charset(encoder: Enc, decoder: Dec) -> Self {
-        Self {
-            _acc: marker::PhantomData,
-            encoder,
-            decoder,
-        }
-    }
-
     /// Computes the check characters for the string `s` and appends them.
     ///
     /// # Errors
@@ -140,28 +131,17 @@ where
             .map(|vs| vs.map(|v| self.force_encode(v)))
     }
 
-    /// Computes the check character values from an iterator of numerical values.
-    ///
-    /// # Errors
-    ///
-    /// Returns a [`ComputeError`] if any value is not in the character set.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use iso_7064::MOD37_36;
-    ///
-    /// let iter = [21, 14, 5, 34];
-    /// assert_eq!(MOD37_36.compute_from_values(iter)?, [17]);
-    /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
-    /// ```
-    pub fn compute_from_values(
-        &self,
-        values: impl IntoIterator<Item = u32>,
-    ) -> Result<[u32; N_CC], ComputeError<u32>> {
-        self.compute_from_iter(values)
+    fn force_encode(&self, v: u32) -> char {
+        const ERR: &str = "invalid charset implementation";
+        self.encoder.encode(v).expect(ERR)
     }
+}
 
+impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
+where
+    Acc: Accumulator + Default,
+    Dec: Decoder,
+{
     /// Verifies whether the check characters in the string `s` are valid.
     ///
     /// # Errors
@@ -220,6 +200,33 @@ where
     ) -> Result<bool, VerifyError<char>> {
         self.verify_from_iter(chars)
     }
+}
+
+impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
+where
+    Acc: Accumulator + Default,
+{
+    /// Computes the check character values from an iterator of numerical values.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [`ComputeError`] if any value is not in the character set.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD37_36;
+    ///
+    /// let iter = [21, 14, 5, 34];
+    /// assert_eq!(MOD37_36.compute_from_values(iter)?, [17]);
+    /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
+    /// ```
+    pub fn compute_from_values(
+        &self,
+        values: impl IntoIterator<Item = u32>,
+    ) -> Result<Acc::Computed, ComputeError<u32>> {
+        self.compute_from_iter(values)
+    }
 
     /// Verifies whether the check character values in the iterator of numerical values are valid.
     ///
@@ -244,16 +251,6 @@ where
         self.verify_from_iter(values)
     }
 
-    fn force_encode(&self, v: u32) -> char {
-        const ERR: &str = "invalid charset implementation";
-        self.encoder.encode(v).expect(ERR)
-    }
-}
-
-impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
-where
-    Acc: Accumulator + Default,
-{
     fn compute_from_iter<T: Accumulatable<Dec> + Copy>(
         &self,
         iter: impl IntoIterator<Item = T>,
@@ -298,6 +295,15 @@ where
             let _ = val.accumulate_to(&mut acc, &self.decoder);
         }
         acc
+    }
+
+    /// Creates an instance with [`Encoder`] and [`Decoder`].
+    pub const fn with_charset(encoder: Enc, decoder: Dec) -> Self {
+        Self {
+            _acc: marker::PhantomData,
+            encoder,
+            decoder,
+        }
     }
 }
 
