@@ -191,7 +191,7 @@ fn decode_ascii(c: char, zero_value: u8) -> u32 {
 }
 
 /// A container whose values can be encoded with an [`Encoder`].
-pub(crate) trait Encodable {
+pub trait Encodable {
     /// The resulting encoded type.
     type Encoded: IntoIterator<Item = char>;
 

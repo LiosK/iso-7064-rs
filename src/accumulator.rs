@@ -14,7 +14,10 @@
 //! ```
 
 /// A trait for accumulating values to compute or verify check characters.
-pub trait Accumulator<const N_CC: usize> {
+pub trait Accumulator {
+    /// The numerical values of the computed check characters.
+    type Computed: IntoIterator<Item = u32>;
+
     /// Accumulates a numerical value, returning the result of the step as an [`AccumulateResult`].
     ///
     /// The accumulated state is updated only when `Processed` is returned. `NotInCharset` usually
@@ -28,7 +31,7 @@ pub trait Accumulator<const N_CC: usize> {
     fn accumulate(&mut self, value: u32) -> AccumulateResult;
 
     /// Computes the final check characters from the accumulated state.
-    fn compute(&self) -> [u32; N_CC];
+    fn compute(&self) -> Self::Computed;
 
     /// Verifies whether the accumulated state satisfies the check character condition.
     fn verify(&self) -> bool;
@@ -235,13 +238,15 @@ macro_rules! impl_accumulator_traits {
             }
         }
 
-        impl<$(const $param: u32),+> Accumulator<$n_cc> for $ty<$($param),+> {
+        impl<$(const $param: u32),+> Accumulator for $ty<$($param),+> {
+            type Computed = [u32; $n_cc];
+
             #[inline]
             fn accumulate(&mut self, value: u32) -> AccumulateResult {
                 self.accumulate_const(value)
             }
 
-            fn compute(&self) -> [u32; $n_cc] {
+            fn compute(&self) -> Self::Computed {
                 self.compute_const()
             }
 
@@ -284,10 +289,7 @@ pub type Mod37_36 = Hybrid<36>;
 mod tests {
     use super::*;
 
-    fn accumulate_values<const N_CC: usize>(
-        acc: &mut impl Accumulator<N_CC>,
-        values: impl IntoIterator<Item = u32>,
-    ) {
+    fn accumulate_values(acc: &mut impl Accumulator, values: impl IntoIterator<Item = u32>) {
         for value in values {
             assert_eq!(acc.accumulate(value), AccumulateResult::Processed);
         }
@@ -410,10 +412,13 @@ mod tests {
     /// Accepts alternative check character pairs of the pure double systems.
     #[test]
     fn pure_double_ambiguity() {
-        fn run<Acc: Accumulator<2> + Default>(s: &[u32], cc: &[u32], cc_alt: &[u32]) {
+        fn run<Acc>(s: &[u32], cc: &[u32], cc_alt: &[u32])
+        where
+            Acc: Accumulator<Computed = [u32; 2]> + Default,
+        {
             let mut acc = Acc::default();
             accumulate_values(&mut acc, s.iter().copied());
-            assert_eq!(&acc.compute(), cc);
+            assert_eq!(acc.compute(), cc);
 
             accumulate_values(&mut acc, cc.iter().copied());
             assert!(acc.verify());
@@ -438,7 +443,7 @@ mod tests {
         next_s: impl Fn(u32, u32) -> u32,
         next_p: impl Fn(u32) -> u32,
     ) where
-        Acc: Accumulator<N_CC> + Default + Clone,
+        Acc: Accumulator<Computed = [u32; N_CC]> + Default + Clone,
     {
         use rand::{RngExt as _, rngs::SmallRng};
         let mut rng: SmallRng = rand::make_rng();
@@ -476,7 +481,7 @@ mod tests {
 
     fn random_inner_pure<const N_CC: usize, Acc>(modulus: u32, radix: u32, charset_size: u32)
     where
-        Acc: Accumulator<N_CC> + Default + Clone,
+        Acc: Accumulator<Computed = [u32; N_CC]> + Default + Clone,
     {
         let next_s = |p, a| p + a;
         let next_p = move |s| s * radix % modulus;
@@ -485,7 +490,7 @@ mod tests {
 
     fn random_inner_hybrid<Acc>(m: u32)
     where
-        Acc: Accumulator<1> + Default + Clone,
+        Acc: Accumulator<Computed = [u32; 1]> + Default + Clone,
     {
         let next_s = |p, a| p + a;
         let next_p = move |s| match s % m {
