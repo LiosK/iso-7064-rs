@@ -71,7 +71,7 @@ impl<const MODULUS: u32, const RADIX: u32, const CHARSET_SIZE: u32>
     /// Creates a new accumulator.
     const fn new() -> Self {
         assert!(MODULUS >= CHARSET_SIZE);
-        assert!(MODULUS > 0 && RADIX > 0 && CHARSET_SIZE > 0);
+        assert!(MODULUS > 1 && RADIX > 0 && CHARSET_SIZE > 0);
         assert!(MODULUS < u32::MAX);
         Self {
             carry: 0,
@@ -122,7 +122,7 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
     /// Creates a new accumulator.
     const fn new() -> Self {
         assert!(MODULUS <= CHARSET_SIZE * CHARSET_SIZE);
-        assert!(MODULUS > 0 && CHARSET_SIZE > 0);
+        assert!(MODULUS > 1 && CHARSET_SIZE > 0);
         assert!(MODULUS < u32::MAX);
         Self { carry: 0 }
     }
@@ -186,7 +186,7 @@ impl<const CHARSET_SIZE: u32> Hybrid<CHARSET_SIZE> {
     /// Creates a new accumulator.
     const fn new() -> Self {
         assert!(CHARSET_SIZE % 2 == 0, "`CHARSET_SIZE` must be even");
-        assert!(CHARSET_SIZE > 0);
+        assert!(CHARSET_SIZE > 1);
         assert!(u32::MAX / 2 > CHARSET_SIZE);
         Self { carry: 0 }
     }
