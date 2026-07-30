@@ -42,7 +42,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`ComputeError`] if any character is not in the character set.
+    /// Returns a [`ComputeError`] if the input contains any character that is not in the character
+    /// set.
     ///
     /// # Examples
     ///
@@ -54,6 +55,11 @@ where
     /// assert_eq!(buf, "327X");
     /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
+    /// pair such that the encoder cannot encode check character values produced by the accumulator.
     #[cfg(feature = "alloc")]
     pub fn protect(&self, s: &mut alloc::string::String) -> Result<(), ComputeError<char>> {
         self.compute(s).map(|cc| s.extend(cc))
@@ -71,6 +77,11 @@ where
     /// MOD11_2.protect_lax(&mut buf);
     /// assert_eq!(buf, "3.2.7.X");
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
+    /// pair such that the encoder cannot encode check character values produced by the accumulator.
     #[cfg(feature = "alloc")]
     pub fn protect_lax(&self, s: &mut alloc::string::String) {
         s.extend(self.compute_lax(s));
@@ -80,7 +91,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`ComputeError`] if any character is not in the character set.
+    /// Returns a [`ComputeError`] if the input contains any character that is not in the character
+    /// set.
     ///
     /// # Examples
     ///
@@ -90,6 +102,11 @@ where
     /// assert_eq!(MOD37_2.compute("5S7U")?, ['G']);
     /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
+    /// pair such that the encoder cannot encode check character values produced by the accumulator.
     pub fn compute(&self, s: &str) -> Result<[char; N_CC], ComputeError<char>> {
         self.compute_from_chars(s.chars())
     }
@@ -103,6 +120,11 @@ where
     ///
     /// assert_eq!(MOD37_2.compute_lax("5S=7U"), ['G']);
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
+    /// pair such that the encoder cannot encode check character values produced by the accumulator.
     pub fn compute_lax(&self, s: &str) -> [char; N_CC] {
         let vs = self.lax_from_iter(s.chars()).compute();
         vs.map(|v| self.force_encode(v))
@@ -112,7 +134,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`ComputeError`] if any character is not in the character set.
+    /// Returns a [`ComputeError`] if the input contains any character that is not in the character
+    /// set.
     ///
     /// # Examples
     ///
@@ -123,6 +146,11 @@ where
     /// assert_eq!(MOD11_10.compute_from_chars(iter)?, ['8']);
     /// # Ok::<_, iso_7064::system::ComputeError<_>>(())
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
+    /// pair such that the encoder cannot encode check character values produced by the accumulator.
     pub fn compute_from_chars(
         &self,
         chars: impl IntoIterator<Item = char>,
@@ -131,6 +159,7 @@ where
             .map(|vs| vs.map(|v| self.force_encode(v)))
     }
 
+    #[track_caller]
     fn force_encode(&self, v: u32) -> char {
         const ERR: &str = "invalid charset implementation";
         self.encoder.encode(v).expect(ERR)
@@ -146,8 +175,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`VerifyError`] if any character is not in the character set, or if a
-    /// supplementary check character (e.g., `X` or `*`) is found before the end.
+    /// Returns a [`VerifyError`] if the input contains any character that is not in the character
+    /// set, or if a supplementary check character (e.g., `X` or `*`) is found before the end.
     ///
     /// # Examples
     ///
@@ -182,8 +211,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`VerifyError`] if any character is not in the character set, or if a
-    /// supplementary check character (e.g., `X` or `*`) is found before the end.
+    /// Returns a [`VerifyError`] if the input contains any character that is not in the character
+    /// set, or if a supplementary check character (e.g., `X` or `*`) is found before the end.
     ///
     /// # Examples
     ///
@@ -210,7 +239,7 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`ComputeError`] if any value is not in the character set.
+    /// Returns a [`ComputeError`] if the input contains any value that is not in the character set.
     ///
     /// # Examples
     ///
@@ -232,8 +261,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns a [`VerifyError`] if any value is not in the character set, or if a supplementary
-    /// check character value is found before the end.
+    /// Returns a [`VerifyError`] if the input contains any value that is not in the character set,
+    /// or if a supplementary check character value is found before the end.
     ///
     /// # Examples
     ///
