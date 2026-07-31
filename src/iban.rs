@@ -144,12 +144,13 @@ impl Iban {
                 acc.accumulate(value / 10);
                 acc.accumulate(value % 10);
             }
+
             pos += 1;
-        }
-        if pos > 34 {
-            return Err(IbanError {
-                kind: IbanErrorKind::TooLong,
-            });
+            if pos > 34 {
+                return Err(IbanError {
+                    kind: IbanErrorKind::TooLong,
+                });
+            }
         }
 
         pos = 0;
