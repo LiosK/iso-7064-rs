@@ -61,6 +61,7 @@ where
     /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
     /// pair such that the encoder cannot encode check character values produced by the accumulator.
     #[cfg(feature = "alloc")]
+    #[track_caller]
     pub fn protect(&self, s: &mut alloc::string::String) -> Result<(), ComputeError<char>> {
         self.compute(s).map(|cc| s.extend(cc))
     }
@@ -83,6 +84,7 @@ where
     /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
     /// pair such that the encoder cannot encode check character values produced by the accumulator.
     #[cfg(feature = "alloc")]
+    #[track_caller]
     pub fn protect_lax(&self, s: &mut alloc::string::String) {
         s.extend(self.compute_lax(s));
     }
@@ -107,6 +109,7 @@ where
     ///
     /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
     /// pair such that the encoder cannot encode check character values produced by the accumulator.
+    #[track_caller]
     pub fn compute(&self, s: &str) -> Result<[char; N_CC], ComputeError<char>> {
         self.compute_from_chars(s.chars())
     }
@@ -125,9 +128,10 @@ where
     ///
     /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
     /// pair such that the encoder cannot encode check character values produced by the accumulator.
+    #[track_caller]
     pub fn compute_lax(&self, s: &str) -> [char; N_CC] {
         let vs = self.lax_from_iter(s.chars()).compute();
-        vs.map(|v| self.force_encode(v))
+        self.encode_computed(vs)
     }
 
     /// Computes the check characters from an iterator of characters.
@@ -151,18 +155,23 @@ where
     ///
     /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
     /// pair such that the encoder cannot encode check character values produced by the accumulator.
+    #[track_caller]
     pub fn compute_from_chars(
         &self,
         chars: impl IntoIterator<Item = char>,
     ) -> Result<[char; N_CC], ComputeError<char>> {
-        self.compute_from_iter(chars)
-            .map(|vs| vs.map(|v| self.force_encode(v)))
+        let vs = self.compute_from_iter(chars)?;
+        Ok(self.encode_computed(vs))
     }
 
     #[track_caller]
-    fn force_encode(&self, v: u32) -> char {
+    fn encode_computed(&self, values: [u32; N_CC]) -> [char; N_CC] {
         const ERR: &str = "invalid charset implementation";
-        self.encoder.encode(v).expect(ERR)
+        let mut chars = [char::default(); N_CC];
+        for (p, v) in chars.iter_mut().zip(values) {
+            *p = self.encoder.encode(v).expect(ERR);
+        }
+        chars
     }
 }
 
