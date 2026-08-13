@@ -11,7 +11,10 @@ pub const GTIN: System<1, GtinAcc, Numeric, Numeric> = System::with_charset(Nume
 
 /// An accumulator for the Luhn algorithm.
 #[derive(Debug, Clone, Default)]
-pub struct LuhnAcc(u32, u32);
+pub struct LuhnAcc {
+    carry: (u32, u32),
+    has_processed: bool,
+}
 
 impl Accumulator for LuhnAcc {
     type Computed = [u32; 1];
@@ -21,28 +24,32 @@ impl Accumulator for LuhnAcc {
         if value >= 10 {
             AccumulateResult::NotInCharset
         } else {
-            let Self(mut a, b) = *self;
+            let (mut a, b) = self.carry;
             if a > u32::MAX - 10 * 2 {
                 a = cold_rem::<10>(a);
             }
-            self.0 = b + value;
-            self.1 = a + if value < 5 { value * 2 } else { value * 2 - 9 };
+            self.carry.0 = b + value;
+            self.carry.1 = a + if value < 5 { value * 2 } else { value * 2 - 9 };
+            self.has_processed = true;
             AccumulateResult::Processed
         }
     }
 
     fn compute(&self) -> Self::Computed {
-        [spec_rem(10 - self.1 % 10, 10)]
+        [spec_rem(10 - self.carry.1 % 10, 10)]
     }
 
     fn verify(&self) -> bool {
-        self.0 % 10 == 0
+        self.has_processed && self.carry.0 % 10 == 0
     }
 }
 
 /// An accumulator for the check digit algorithm for GS1 data structures.
 #[derive(Debug, Clone, Default)]
-pub struct GtinAcc(u32, u32);
+pub struct GtinAcc {
+    carry: (u32, u32),
+    has_processed: bool,
+}
 
 impl Accumulator for GtinAcc {
     type Computed = [u32; 1];
@@ -52,21 +59,22 @@ impl Accumulator for GtinAcc {
         if value >= 10 {
             AccumulateResult::NotInCharset
         } else {
-            let Self(mut a, b) = *self;
+            let (mut a, b) = self.carry;
             if a > u32::MAX - 10 {
                 a = cold_rem::<10>(a);
             }
-            *self = Self(b, a + value);
+            self.carry = (b, a + value);
+            self.has_processed = true;
             AccumulateResult::Processed
         }
     }
 
     fn compute(&self) -> Self::Computed {
-        [spec_rem(10 - gtin_sum(self.0, self.1), 10)]
+        [spec_rem(10 - gtin_sum(self.carry.0, self.carry.1), 10)]
     }
 
     fn verify(&self) -> bool {
-        gtin_sum(self.1, self.0) == 0
+        self.has_processed && gtin_sum(self.carry.1, self.carry.0) == 0
     }
 }
 
@@ -117,10 +125,10 @@ mod tests {
 
         accumulate_values(&mut acc, 0..10);
 
-        let carry = (acc.0, acc.1);
+        let carry = acc.carry;
         for value in 10..2048 {
             assert_eq!(acc.accumulate(value), AccumulateResult::NotInCharset);
-            assert_eq!((acc.0, acc.1), carry);
+            assert_eq!(acc.carry, carry);
         }
     }
 
@@ -130,10 +138,10 @@ mod tests {
 
         accumulate_values(&mut acc, 0..10);
 
-        let carry = (acc.0, acc.1);
+        let carry = acc.carry;
         for value in 10..2048 {
             assert_eq!(acc.accumulate(value), AccumulateResult::NotInCharset);
-            assert_eq!((acc.0, acc.1), carry);
+            assert_eq!(acc.carry, carry);
         }
     }
 
@@ -147,6 +155,7 @@ mod tests {
         for _ in 0..8 {
             let values: [_; 1024] = array::from_fn(|_| rng.random_range(0..10));
             let mut acc = Acc::default();
+            assert!(!acc.verify());
             for i in 0..values.len() {
                 acc.accumulate(values[i]);
 
