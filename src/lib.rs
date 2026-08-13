@@ -51,6 +51,7 @@
 
 pub mod accumulator;
 pub mod charset;
+pub mod extra;
 pub mod iban;
 pub mod system;
 
@@ -85,6 +86,12 @@ pub const MOD27_26: system::Mod27_26 =
 /// The ISO/IEC 7064, MOD 37,36 hybrid system.
 pub const MOD37_36: system::Mod37_36 =
     system::Mod37_36::with_charset(charset::Alphanumeric, charset::Alphanumeric);
+
+#[inline(always)]
+const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
+    debug_assert!(lhs < rhs * 2);
+    if lhs < rhs { lhs } else { lhs - rhs }
+}
 
 #[cfg(test)]
 mod tests {

@@ -13,6 +13,8 @@
 //! assert!(acc.verify(), "079X is valid string");
 //! ```
 
+use crate::spec_rem;
+
 /// A trait for accumulating values to compute or verify check characters.
 pub trait Accumulator {
     /// The numerical values of the computed check characters.
@@ -213,12 +215,6 @@ impl<const CHARSET_SIZE: u32> Hybrid<CHARSET_SIZE> {
     const fn verify_const(&self) -> bool {
         self.carry == 1
     }
-}
-
-#[inline(always)]
-const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
-    debug_assert!(lhs < rhs * 2);
-    if lhs < rhs { lhs } else { lhs - rhs }
 }
 
 #[inline(always)]
