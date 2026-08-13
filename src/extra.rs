@@ -9,8 +9,6 @@ pub const LUHN: System<1, LuhnAcc, Numeric, Numeric> = System::with_charset(Nume
 /// The standard check digit algorithm for GS1 data structures (including GTIN).
 pub const GTIN: System<1, GtinAcc, Numeric, Numeric> = System::with_charset(Numeric, Numeric);
 
-const LUHN_MODULUS: u32 = 10;
-
 /// An accumulator for the Luhn algorithm.
 #[derive(Debug, Clone, Default)]
 pub struct LuhnAcc(u32, u32);
@@ -20,32 +18,25 @@ impl Accumulator for LuhnAcc {
 
     #[inline]
     fn accumulate(&mut self, value: u32) -> AccumulateResult {
-        if value >= LUHN_MODULUS {
+        if value >= 10 {
             AccumulateResult::NotInCharset
         } else {
             let Self(mut a, b) = *self;
-            if a > u32::MAX - LUHN_MODULUS * 2 {
-                a = cold_rem::<LUHN_MODULUS>(a);
+            if a > u32::MAX - 10 * 2 {
+                a = cold_rem::<10>(a);
             }
-
             self.0 = b + value;
-            self.1 = a + if value < LUHN_MODULUS / 2 {
-                value * 2
-            } else {
-                value * 2 - (LUHN_MODULUS - 1)
-            };
-
+            self.1 = a + if value < 5 { value * 2 } else { value * 2 - 9 };
             AccumulateResult::Processed
         }
     }
 
     fn compute(&self) -> Self::Computed {
-        let carry = self.1 % LUHN_MODULUS;
-        [spec_rem(LUHN_MODULUS - carry, LUHN_MODULUS)]
+        [spec_rem(10 - self.1 % 10, 10)]
     }
 
     fn verify(&self) -> bool {
-        self.0 % LUHN_MODULUS == 0
+        self.0 % 10 == 0
     }
 }
 
@@ -124,10 +115,10 @@ mod tests {
     fn boundaries_luhn() {
         let mut acc = LuhnAcc::default();
 
-        accumulate_values(&mut acc, 0..LUHN_MODULUS);
+        accumulate_values(&mut acc, 0..10);
 
         let carry = (acc.0, acc.1);
-        for value in LUHN_MODULUS..2048 {
+        for value in 10..2048 {
             assert_eq!(acc.accumulate(value), AccumulateResult::NotInCharset);
             assert_eq!((acc.0, acc.1), carry);
         }
@@ -164,7 +155,7 @@ mod tests {
             let mut acc = LuhnAcc::default();
             let mut values = [0; 1024];
             for i in 0..values.len() {
-                values[i] = rng.random_range(0..LUHN_MODULUS);
+                values[i] = rng.random_range(0..10);
                 acc.accumulate(values[i]);
 
                 assert_eq!(acc.verify(), naive_luhn(&values[..i]) == values[i]);
