@@ -137,31 +137,23 @@ mod tests {
         }
     }
 
-    #[test]
-    fn random_luhn() {
-        fn naive_luhn(values: &[u32]) -> u32 {
-            const SUB: [u32; 10] = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
-            let mut carry = 0;
-            for (i, &v) in values.iter().rev().enumerate() {
-                carry += if i % 2 == 0 { SUB[v as usize] } else { v };
-                carry %= 10;
-            }
-            (10 - carry) % 10
-        }
-
+    fn random_inner<Acc>(naive_fn: impl Fn(&[u32]) -> u32)
+    where
+        Acc: Accumulator<Computed = [u32; 1]> + Default + Clone,
+    {
+        use core::array;
         use rand::{RngExt as _, rngs::SmallRng};
         let mut rng: SmallRng = rand::make_rng();
         for _ in 0..8 {
-            let mut acc = LuhnAcc::default();
-            let mut values = [0; 1024];
+            let values: [_; 1024] = array::from_fn(|_| rng.random_range(0..10));
+            let mut acc = Acc::default();
             for i in 0..values.len() {
-                values[i] = rng.random_range(0..10);
                 acc.accumulate(values[i]);
 
-                assert_eq!(acc.verify(), naive_luhn(&values[..i]) == values[i]);
+                assert_eq!(acc.verify(), naive_fn(&values[..i]) == values[i]);
 
                 let cc = acc.compute();
-                assert_eq!(cc, [naive_luhn(&values[..=i])]);
+                assert_eq!(cc, [naive_fn(&values[..=i])]);
 
                 let mut clone = acc.clone();
                 for value in cc {
@@ -173,8 +165,23 @@ mod tests {
     }
 
     #[test]
+    fn random_luhn() {
+        fn naive_fn(values: &[u32]) -> u32 {
+            const SUB: [u32; 10] = [0, 2, 4, 6, 8, 1, 3, 5, 7, 9];
+            let mut carry = 0;
+            for (i, &v) in values.iter().rev().enumerate() {
+                carry += if i % 2 == 0 { SUB[v as usize] } else { v };
+                carry %= 10;
+            }
+            (10 - carry) % 10
+        }
+
+        random_inner::<LuhnAcc>(naive_fn);
+    }
+
+    #[test]
     fn random_gtin() {
-        fn naive_gtin(values: &[u32]) -> u32 {
+        fn naive_fn(values: &[u32]) -> u32 {
             let mut carry = 0;
             for (i, &v) in values.iter().rev().enumerate() {
                 carry += if i % 2 == 0 { v * 3 } else { v };
@@ -183,26 +190,6 @@ mod tests {
             (10 - carry) % 10
         }
 
-        use rand::{RngExt as _, rngs::SmallRng};
-        let mut rng: SmallRng = rand::make_rng();
-        for _ in 0..8 {
-            let mut acc = GtinAcc::default();
-            let mut values = [0; 1024];
-            for i in 0..values.len() {
-                values[i] = rng.random_range(0..10);
-                acc.accumulate(values[i]);
-
-                assert_eq!(acc.verify(), naive_gtin(&values[..i]) == values[i]);
-
-                let cc = acc.compute();
-                assert_eq!(cc, [naive_gtin(&values[..=i])]);
-
-                let mut clone = acc.clone();
-                for value in cc {
-                    clone.accumulate(value);
-                }
-                assert!(clone.verify())
-            }
-        }
+        random_inner::<GtinAcc>(naive_fn);
     }
 }
