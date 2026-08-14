@@ -57,35 +57,35 @@ pub mod system;
 
 /// The ISO/IEC 7064, MOD 11-2 pure system with a single check character.
 pub const MOD11_2: system::Mod11_2 =
-    system::Mod11_2::with_charset(charset::NumericX, charset::NumericX);
+    system::System::with_charset(charset::NumericX, charset::NumericX);
 
 /// The ISO/IEC 7064, MOD 37-2 pure system with a single check character.
 pub const MOD37_2: system::Mod37_2 =
-    system::Mod37_2::with_charset(charset::AlphanumericAst, charset::AlphanumericAst);
+    system::System::with_charset(charset::AlphanumericAst, charset::AlphanumericAst);
 
 /// The ISO/IEC 7064, MOD 97-10 pure system with two check characters.
 pub const MOD97_10: system::Mod97_10 =
-    system::Mod97_10::with_charset(charset::Numeric, charset::Numeric);
+    system::System::with_charset(charset::Numeric, charset::Numeric);
 
 /// The ISO/IEC 7064, MOD 661-26 pure system with two check characters.
 pub const MOD661_26: system::Mod661_26 =
-    system::Mod661_26::with_charset(charset::Alphabetic, charset::Alphabetic);
+    system::System::with_charset(charset::Alphabetic, charset::Alphabetic);
 
 /// The ISO/IEC 7064, MOD 1271-36 pure system with two check characters.
 pub const MOD1271_36: system::Mod1271_36 =
-    system::Mod1271_36::with_charset(charset::Alphanumeric, charset::Alphanumeric);
+    system::System::with_charset(charset::Alphanumeric, charset::Alphanumeric);
 
 /// The ISO/IEC 7064, MOD 11,10 hybrid system.
 pub const MOD11_10: system::Mod11_10 =
-    system::Mod11_10::with_charset(charset::Numeric, charset::Numeric);
+    system::System::with_charset(charset::Numeric, charset::Numeric);
 
 /// The ISO/IEC 7064, MOD 27,26 hybrid system.
 pub const MOD27_26: system::Mod27_26 =
-    system::Mod27_26::with_charset(charset::Alphabetic, charset::Alphabetic);
+    system::System::with_charset(charset::Alphabetic, charset::Alphabetic);
 
 /// The ISO/IEC 7064, MOD 37,36 hybrid system.
 pub const MOD37_36: system::Mod37_36 =
-    system::Mod37_36::with_charset(charset::Alphanumeric, charset::Alphanumeric);
+    system::System::with_charset(charset::Alphanumeric, charset::Alphanumeric);
 
 #[inline(always)]
 const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
