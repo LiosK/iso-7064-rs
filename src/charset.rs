@@ -9,6 +9,12 @@ pub trait Encoder {
 }
 
 /// A trait for decoding a character into its corresponding numerical value.
+///
+/// A decoder maps one character into one numerical value. For use cases where a character maps to
+/// multiple numerical values, see [`System::verify_from_values()`] for the idiomatic way to handle
+/// that.
+///
+/// [`System::verify_from_values()`]: crate::System::verify_from_values
 pub trait Decoder {
     /// Decodes a character into its corresponding numerical value.
     ///

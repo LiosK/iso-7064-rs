@@ -347,6 +347,25 @@ where
     /// assert!(MOD27_26.verify_from_values(iter)?);
     /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
     /// ```
+    ///
+    /// The `_from_values` methods are handy for plugging in a custom decoding scheme.
+    ///
+    /// ```rust
+    /// use iso_7064::MOD97_10;
+    ///
+    /// // Verify an International Bank Account Number (IBAN).
+    /// let iban = "IE06BOFI90008412345671";
+    /// let iter = iban[4..].chars().chain(iban[..4].chars()).flat_map(|c| {
+    ///     // Decode letters into two-digit values (e.g., 'A' -> [1, 0]).
+    ///     match c.to_digit(36) {
+    ///         Some(v @ ..=9) => [v, 0].into_iter().take(1),
+    ///         Some(v @ 10..) => [v / 10, v % 10].into_iter().take(2),
+    ///         None => [u32::MAX, 0].into_iter().take(1),
+    ///     }
+    /// });
+    /// assert!(MOD97_10.verify_from_values(iter)?);
+    /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
+    /// ```
     pub fn verify_from_values(
         &self,
         values: impl IntoIterator<Item = u32>,
