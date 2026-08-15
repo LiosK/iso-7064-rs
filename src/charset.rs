@@ -21,7 +21,6 @@ pub trait Decoder {
 pub struct Numeric;
 
 impl Encoder for Numeric {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
@@ -48,7 +47,6 @@ impl Decoder for Numeric {
 pub struct NumericX;
 
 impl Encoder for NumericX {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
@@ -76,7 +74,6 @@ impl Decoder for NumericX {
 pub struct Alphabetic;
 
 impl Encoder for Alphabetic {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..26 => Some(encode_ascii(v, b'A')),
@@ -102,7 +99,6 @@ impl Decoder for Alphabetic {
 pub struct Alphanumeric;
 
 impl Encoder for Alphanumeric {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
@@ -131,7 +127,6 @@ impl Decoder for Alphanumeric {
 pub struct AlphanumericAst;
 
 impl Encoder for AlphanumericAst {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
