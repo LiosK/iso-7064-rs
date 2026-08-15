@@ -9,6 +9,12 @@ pub trait Encoder {
 }
 
 /// A trait for decoding a character into its corresponding numerical value.
+///
+/// A decoder maps one character into one numerical value. For use cases where a character maps to
+/// multiple numerical values, see [`System::verify_from_values()`] for the idiomatic way to handle
+/// that.
+///
+/// [`System::verify_from_values()`]: crate::System::verify_from_values
 pub trait Decoder {
     /// Decodes a character into its corresponding numerical value.
     ///
@@ -21,7 +27,6 @@ pub trait Decoder {
 pub struct Numeric;
 
 impl Encoder for Numeric {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
@@ -48,7 +53,6 @@ impl Decoder for Numeric {
 pub struct NumericX;
 
 impl Encoder for NumericX {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
@@ -76,7 +80,6 @@ impl Decoder for NumericX {
 pub struct Alphabetic;
 
 impl Encoder for Alphabetic {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..26 => Some(encode_ascii(v, b'A')),
@@ -102,7 +105,6 @@ impl Decoder for Alphabetic {
 pub struct Alphanumeric;
 
 impl Encoder for Alphanumeric {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
@@ -131,7 +133,6 @@ impl Decoder for Alphanumeric {
 pub struct AlphanumericAst;
 
 impl Encoder for AlphanumericAst {
-    #[inline]
     fn encode(&self, v: u32) -> Option<char> {
         match v {
             ..10 => Some(encode_ascii(v, b'0')),
