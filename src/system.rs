@@ -25,6 +25,17 @@ use crate::charset::{self, Decoder, Encoder};
 
 /// A generic facade structure combining [`Accumulator`] and character set into a check character
 /// system interface.
+///
+/// This type provides computation and verification methods for four types of input as follows. Each
+/// method has its `_lax` variant that ignores any invalid characters in the input, rather than
+/// reporting an error.
+///
+/// | Input           | Computation method                                   | Verification method                                |
+/// | --------------- | ---------------------------------------------------- | -------------------------------------------------- |
+/// | `&mut String`   | [`protect`](System::protect)                         | N/A                                                |
+/// | `&str`          | [`compute`](System::compute)                         | [`verify`](System::verify)                         |
+/// | `char` iterator | [`compute_from_chars`](System::compute_from_chars)   | [`verify_from_chars`](System::verify_from_chars)   |
+/// | `u32` iterator  | [`compute_from_values`](System::compute_from_values) | [`verify_from_values`](System::verify_from_values) |
 #[derive(Debug, Default)]
 pub struct System<const N_CC: usize, Acc, Enc, Dec> {
     _acc: marker::PhantomData<Acc>,
