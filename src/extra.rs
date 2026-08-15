@@ -4,16 +4,20 @@ use crate::accumulator::{AccumulateResult, Accumulator};
 use crate::{charset::Numeric, spec_rem, system::System};
 
 /// The Luhn algorithm.
-pub const LUHN: LuhnSys = System::with_charset(Numeric, Numeric);
+///
+/// See the [`System`] type for provided methods.
+pub const LUHN: Luhn = System::with_charset(Numeric, Numeric);
 
 /// The standard check digit algorithm for GS1 data structures (including GTIN).
-pub const GTIN: GtinSys = System::with_charset(Numeric, Numeric);
+///
+/// See the [`System`] type for provided methods.
+pub const GTIN: Gtin = System::with_charset(Numeric, Numeric);
 
 /// The Luhn algorithm.
-pub type LuhnSys = System<1, LuhnAcc, Numeric, Numeric>;
+pub type Luhn = System<1, LuhnAcc, Numeric, Numeric>;
 
 /// The standard check digit algorithm for GS1 data structures (including GTIN).
-pub type GtinSys = System<1, GtinAcc, Numeric, Numeric>;
+pub type Gtin = System<1, GtinAcc, Numeric, Numeric>;
 
 /// An accumulator for the Luhn algorithm.
 #[derive(Debug, Clone, Default)]
