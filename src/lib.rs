@@ -55,37 +55,52 @@ pub mod extra;
 pub mod iban;
 pub mod system;
 
+use system::System;
+
 /// The ISO/IEC 7064, MOD 11-2 pure system with a single check character.
-pub const MOD11_2: system::Mod11_2 =
-    system::System::with_charset(charset::NumericX, charset::NumericX);
+///
+/// See the [`System`] type for provided methods.
+pub const MOD11_2: system::Mod11_2 = System::with_charset(charset::NumericX, charset::NumericX);
 
 /// The ISO/IEC 7064, MOD 37-2 pure system with a single check character.
+///
+/// See the [`System`] type for provided methods.
 pub const MOD37_2: system::Mod37_2 =
-    system::System::with_charset(charset::AlphanumericAst, charset::AlphanumericAst);
+    System::with_charset(charset::AlphanumericAst, charset::AlphanumericAst);
 
 /// The ISO/IEC 7064, MOD 97-10 pure system with two check characters.
-pub const MOD97_10: system::Mod97_10 =
-    system::System::with_charset(charset::Numeric, charset::Numeric);
+///
+/// See the [`System`] type for provided methods.
+pub const MOD97_10: system::Mod97_10 = System::with_charset(charset::Numeric, charset::Numeric);
 
 /// The ISO/IEC 7064, MOD 661-26 pure system with two check characters.
+///
+/// See the [`System`] type for provided methods.
 pub const MOD661_26: system::Mod661_26 =
-    system::System::with_charset(charset::Alphabetic, charset::Alphabetic);
+    System::with_charset(charset::Alphabetic, charset::Alphabetic);
 
 /// The ISO/IEC 7064, MOD 1271-36 pure system with two check characters.
+///
+/// See the [`System`] type for provided methods.
 pub const MOD1271_36: system::Mod1271_36 =
-    system::System::with_charset(charset::Alphanumeric, charset::Alphanumeric);
+    System::with_charset(charset::Alphanumeric, charset::Alphanumeric);
 
 /// The ISO/IEC 7064, MOD 11,10 hybrid system.
-pub const MOD11_10: system::Mod11_10 =
-    system::System::with_charset(charset::Numeric, charset::Numeric);
+///
+/// See the [`System`] type for provided methods.
+pub const MOD11_10: system::Mod11_10 = System::with_charset(charset::Numeric, charset::Numeric);
 
 /// The ISO/IEC 7064, MOD 27,26 hybrid system.
+///
+/// See the [`System`] type for provided methods.
 pub const MOD27_26: system::Mod27_26 =
-    system::System::with_charset(charset::Alphabetic, charset::Alphabetic);
+    System::with_charset(charset::Alphabetic, charset::Alphabetic);
 
 /// The ISO/IEC 7064, MOD 37,36 hybrid system.
+///
+/// See the [`System`] type for provided methods.
 pub const MOD37_36: system::Mod37_36 =
-    system::System::with_charset(charset::Alphanumeric, charset::Alphanumeric);
+    System::with_charset(charset::Alphanumeric, charset::Alphanumeric);
 
 #[inline(always)]
 const fn spec_rem(lhs: u32, rhs: u32) -> u32 {

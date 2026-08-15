@@ -25,6 +25,17 @@ use crate::charset::{self, Decoder, Encoder};
 
 /// A generic facade structure combining [`Accumulator`] and character set into a check character
 /// system interface.
+///
+/// This type provides computation and verification methods for four types of input as follows. Each
+/// method has its `_lax` variant that ignores any invalid characters in the input, rather than
+/// reporting an error.
+///
+/// | Input           | Computation method                                   | Verification method                                |
+/// | --------------- | ---------------------------------------------------- | -------------------------------------------------- |
+/// | `&mut String`   | [`protect`](System::protect)                         | N/A                                                |
+/// | `&str`          | [`compute`](System::compute)                         | [`verify`](System::verify)                         |
+/// | `char` iterator | [`compute_from_chars`](System::compute_from_chars)   | [`verify_from_chars`](System::verify_from_chars)   |
+/// | `u32` iterator  | [`compute_from_values`](System::compute_from_values) | [`verify_from_values`](System::verify_from_values) |
 #[derive(Debug, Default)]
 pub struct System<const N_CC: usize, Acc, Enc, Dec> {
     _acc: marker::PhantomData<Acc>,
@@ -130,8 +141,7 @@ where
     /// pair such that the encoder cannot encode check character values produced by the accumulator.
     #[track_caller]
     pub fn compute_lax(&self, s: &str) -> [char; N_CC] {
-        let vs = self.lax_from_iter(s.chars()).compute();
-        self.encode_computed(vs)
+        self.compute_from_chars_lax(s.chars())
     }
 
     /// Computes the check characters from an iterator of characters.
@@ -162,6 +172,28 @@ where
     ) -> Result<[char; N_CC], ComputeError<char>> {
         let vs = self.compute_from_iter(chars)?;
         Ok(self.encode_computed(vs))
+    }
+
+    /// Computes the check characters from an iterator of characters, ignoring any invalid
+    /// characters.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD11_10;
+    ///
+    /// let iter = ['2', '0', '-', '6', '5', '-', '1', '.'];
+    /// assert_eq!(MOD11_10.compute_from_chars_lax(iter), ['8']);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the [`System`] is configured with an incompatible [`Encoder`] and [`Accumulator`]
+    /// pair such that the encoder cannot encode check character values produced by the accumulator.
+    #[track_caller]
+    pub fn compute_from_chars_lax(&self, chars: impl IntoIterator<Item = char>) -> [char; N_CC] {
+        let vs = self.lax_from_iter(chars).compute();
+        self.encode_computed(vs)
     }
 
     #[track_caller]
@@ -213,7 +245,7 @@ where
     /// assert!(MOD661_26.verify_lax("MV-EIS:JV"));
     /// ```
     pub fn verify_lax(&self, s: &str) -> bool {
-        self.lax_from_iter(s.chars()).verify()
+        self.verify_from_chars_lax(s.chars())
     }
 
     /// Verifies whether the check characters in the iterator of characters are valid.
@@ -237,6 +269,24 @@ where
         chars: impl IntoIterator<Item = char>,
     ) -> Result<bool, VerifyError<char>> {
         self.verify_from_iter(chars)
+    }
+
+    /// Verifies whether the check characters in the iterator of characters are valid, ignoring any
+    /// invalid characters.
+    ///
+    /// For this purpose, supplementary check characters (e.g., `X` or `*`) found before the end are
+    /// regarded as invalid and ignored.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD97_10;
+    ///
+    /// let iter = "[3793]".chars().chain(['(', '6', '8', ')']);
+    /// assert!(MOD97_10.verify_from_chars_lax(iter));
+    /// ```
+    pub fn verify_from_chars_lax(&self, chars: impl IntoIterator<Item = char>) -> bool {
+        self.lax_from_iter(chars).verify()
     }
 }
 
@@ -266,6 +316,21 @@ where
         self.compute_from_iter(values)
     }
 
+    /// Computes the check character values from an iterator of numerical values, ignoring any
+    /// invalid values.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD37_36;
+    ///
+    /// let iter = [21, 99, 14, 999, 5, 9999, 34];
+    /// assert_eq!(MOD37_36.compute_from_values_lax(iter), [17]);
+    /// ```
+    pub fn compute_from_values_lax(&self, values: impl IntoIterator<Item = u32>) -> Acc::Computed {
+        self.lax_from_iter(values).compute()
+    }
+
     /// Verifies whether the check character values in the iterator of numerical values are valid.
     ///
     /// # Errors
@@ -287,6 +352,24 @@ where
         values: impl IntoIterator<Item = u32>,
     ) -> Result<bool, VerifyError<u32>> {
         self.verify_from_iter(values)
+    }
+
+    /// Verifies whether the check character values in the iterator of numerical values are valid,
+    /// ignoring any invalid values.
+    ///
+    /// For this purpose, supplementary check character values found before the end are regarded as
+    /// invalid and ignored.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use iso_7064::MOD27_26;
+    ///
+    /// let iter = [2, 13, 28, 17, 11].into_iter().chain([29, 15, 30, 31]);
+    /// assert!(MOD27_26.verify_from_values_lax(iter));
+    /// ```
+    pub fn verify_from_values_lax(&self, values: impl IntoIterator<Item = u32>) -> bool {
+        self.lax_from_iter(values).verify()
     }
 
     fn compute_from_iter<T: Accumulatable<Dec> + Copy>(
