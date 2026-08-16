@@ -391,48 +391,66 @@ where
         self.lax_from_iter(values).verify()
     }
 
-    fn compute_from_iter<T: Accumulatable<Dec> + Copy>(
+    fn compute_from_iter<T: IntoValues<Dec> + Copy>(
         &self,
         iter: impl IntoIterator<Item = T>,
     ) -> Result<Acc::Computed, ComputeError<T>> {
         let mut acc = Acc::default();
-        for (pos, val) in iter.into_iter().enumerate() {
-            let AccumulateResult::Processed = val.accumulate_to(&mut acc, &self.decoder) else {
-                return Err(ComputeError { val, pos });
+        for (pos, e) in iter.into_iter().enumerate() {
+            let Some(values) = e.into_values(&self.decoder) else {
+                return Err(ComputeError { val: e, pos });
             };
+
+            for value in values {
+                let AccumulateResult::Processed = acc.accumulate(value) else {
+                    return Err(ComputeError { val: e, pos });
+                };
+            }
         }
         Ok(acc.compute())
     }
 
-    fn verify_from_iter<T: Accumulatable<Dec> + Copy>(
+    fn verify_from_iter<T: IntoValues<Dec> + Copy>(
         &self,
         iter: impl IntoIterator<Item = T>,
     ) -> Result<bool, VerifyError<T>> {
         let mut acc = Acc::default();
-        let mut it = iter.into_iter().enumerate();
-        while let Some((pos, val)) = it.next() {
-            match val.accumulate_to(&mut acc, &self.decoder) {
-                AccumulateResult::Processed => (),
-                AccumulateResult::SupplFound => match it.next() {
-                    None => break,
-                    Some(_) => {
-                        let kind = VerifyErrorKind::UnexpectedSuppl;
-                        return Err(VerifyError { val, pos, kind });
+        let mut iter_outer = iter.into_iter().enumerate();
+        'outer: while let Some((pos, e)) = iter_outer.next() {
+            let Some(values) = e.into_values(&self.decoder) else {
+                let kind = VerifyErrorKind::NotInCharset;
+                return Err(VerifyError { val: e, pos, kind });
+            };
+
+            let mut iter_inner = values.into_iter();
+            while let Some(value) = iter_inner.next() {
+                match acc.accumulate(value) {
+                    AccumulateResult::Processed => (),
+                    AccumulateResult::SupplFound => match (iter_inner.next(), iter_outer.next()) {
+                        (None, None) => break 'outer,
+                        _ => {
+                            let kind = VerifyErrorKind::UnexpectedSuppl;
+                            return Err(VerifyError { val: e, pos, kind });
+                        }
+                    },
+                    AccumulateResult::NotInCharset => {
+                        let kind = VerifyErrorKind::NotInCharset;
+                        return Err(VerifyError { val: e, pos, kind });
                     }
-                },
-                AccumulateResult::NotInCharset => {
-                    let kind = VerifyErrorKind::NotInCharset;
-                    return Err(VerifyError { val, pos, kind });
                 }
             }
         }
         Ok(acc.verify())
     }
 
-    fn lax_from_iter<T: Accumulatable<Dec>>(&self, iter: impl IntoIterator<Item = T>) -> Acc {
+    fn lax_from_iter<T: IntoValues<Dec>>(&self, iter: impl IntoIterator<Item = T>) -> Acc {
         let mut acc = Acc::default();
-        for val in iter {
-            let _ = val.accumulate_to(&mut acc, &self.decoder);
+        for e in iter {
+            if let Some(values) = e.into_values(&self.decoder) {
+                for value in values {
+                    let _ = acc.accumulate(value);
+                }
+            }
         }
         acc
     }
@@ -447,24 +465,21 @@ where
     }
 }
 
-trait Accumulatable<Dec> {
-    fn accumulate_to(self, acc: &mut impl Accumulator, decoder: &Dec) -> AccumulateResult;
+trait IntoValues<Dec> {
+    fn into_values(self, decoder: &Dec) -> Option<impl IntoIterator<Item = u32>>;
 }
 
-impl<Dec> Accumulatable<Dec> for u32 {
+impl<Dec> IntoValues<Dec> for u32 {
     #[inline]
-    fn accumulate_to(self, acc: &mut impl Accumulator, _decoder: &Dec) -> AccumulateResult {
-        acc.accumulate(self)
+    fn into_values(self, _decoder: &Dec) -> Option<impl IntoIterator<Item = u32>> {
+        Some([self])
     }
 }
 
-impl<Dec: Decoder> Accumulatable<Dec> for char {
+impl<Dec: Decoder> IntoValues<Dec> for char {
     #[inline]
-    fn accumulate_to(self, acc: &mut impl Accumulator, decoder: &Dec) -> AccumulateResult {
-        match decoder.decode(self) {
-            Some(value) => acc.accumulate(value),
-            None => AccumulateResult::NotInCharset,
-        }
+    fn into_values(self, decoder: &Dec) -> Option<impl IntoIterator<Item = u32>> {
+        decoder.decode(self).map(|v| [v])
     }
 }
 
