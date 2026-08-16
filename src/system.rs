@@ -6,7 +6,7 @@
 //! // Build a custom MOD 11,10 with case-insensitive alphabetic character set.
 //! let my_mod11_10 =
 //!     System::<1, accumulator::Mod11_10, _, _>::with_charset(charset::Alphabetic, |c: char| {
-//!         c.to_digit(36)?.checked_sub(10)
+//!         Some([c.to_digit(36)?.checked_sub(10)?])
 //!     });
 //!
 //! assert_eq!(my_mod11_10.compute("AhJe")?, ['F']);
@@ -347,25 +347,6 @@ where
     /// assert!(MOD27_26.verify_from_values(iter)?);
     /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
     /// ```
-    ///
-    /// The `_from_values` methods are handy for plugging in a custom decoding scheme.
-    ///
-    /// ```rust
-    /// use iso_7064::MOD97_10;
-    ///
-    /// // Verify an International Bank Account Number (IBAN).
-    /// let iban = "IE06BOFI90008412345671";
-    /// let iter = iban[4..].chars().chain(iban[..4].chars()).flat_map(|c| {
-    ///     // Decode letters into two-digit values (e.g., 'A' -> [1, 0]).
-    ///     match c.to_digit(36) {
-    ///         Some(v @ ..=9) => [v, 0].into_iter().take(1),
-    ///         Some(v @ 10..) => [v / 10, v % 10].into_iter().take(2),
-    ///         None => [u32::MAX, 0].into_iter().take(1),
-    ///     }
-    /// });
-    /// assert!(MOD97_10.verify_from_values(iter)?);
-    /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
-    /// ```
     pub fn verify_from_values(
         &self,
         values: impl IntoIterator<Item = u32>,
@@ -391,48 +372,66 @@ where
         self.lax_from_iter(values).verify()
     }
 
-    fn compute_from_iter<T: Accumulatable<Dec> + Copy>(
+    fn compute_from_iter<T: IntoValues<Dec> + Copy>(
         &self,
         iter: impl IntoIterator<Item = T>,
     ) -> Result<Acc::Computed, ComputeError<T>> {
         let mut acc = Acc::default();
-        for (pos, val) in iter.into_iter().enumerate() {
-            let AccumulateResult::Processed = val.accumulate_to(&mut acc, &self.decoder) else {
-                return Err(ComputeError { val, pos });
+        for (pos, e) in iter.into_iter().enumerate() {
+            let Some(values) = e.into_values(&self.decoder) else {
+                return Err(ComputeError { val: e, pos });
             };
+
+            for value in values {
+                let AccumulateResult::Processed = acc.accumulate(value) else {
+                    return Err(ComputeError { val: e, pos });
+                };
+            }
         }
         Ok(acc.compute())
     }
 
-    fn verify_from_iter<T: Accumulatable<Dec> + Copy>(
+    fn verify_from_iter<T: IntoValues<Dec> + Copy>(
         &self,
         iter: impl IntoIterator<Item = T>,
     ) -> Result<bool, VerifyError<T>> {
         let mut acc = Acc::default();
-        let mut it = iter.into_iter().enumerate();
-        while let Some((pos, val)) = it.next() {
-            match val.accumulate_to(&mut acc, &self.decoder) {
-                AccumulateResult::Processed => (),
-                AccumulateResult::SupplFound => match it.next() {
-                    None => break,
-                    Some(_) => {
-                        let kind = VerifyErrorKind::UnexpectedSuppl;
-                        return Err(VerifyError { val, pos, kind });
+        let mut iter_outer = iter.into_iter().enumerate();
+        'outer: while let Some((pos, e)) = iter_outer.next() {
+            let Some(values) = e.into_values(&self.decoder) else {
+                let kind = VerifyErrorKind::NotInCharset;
+                return Err(VerifyError { val: e, pos, kind });
+            };
+
+            let mut iter_inner = values.into_iter();
+            while let Some(value) = iter_inner.next() {
+                match acc.accumulate(value) {
+                    AccumulateResult::Processed => (),
+                    AccumulateResult::SupplFound => match (iter_inner.next(), iter_outer.next()) {
+                        (None, None) => break 'outer,
+                        _ => {
+                            let kind = VerifyErrorKind::UnexpectedSuppl;
+                            return Err(VerifyError { val: e, pos, kind });
+                        }
+                    },
+                    AccumulateResult::NotInCharset => {
+                        let kind = VerifyErrorKind::NotInCharset;
+                        return Err(VerifyError { val: e, pos, kind });
                     }
-                },
-                AccumulateResult::NotInCharset => {
-                    let kind = VerifyErrorKind::NotInCharset;
-                    return Err(VerifyError { val, pos, kind });
                 }
             }
         }
         Ok(acc.verify())
     }
 
-    fn lax_from_iter<T: Accumulatable<Dec>>(&self, iter: impl IntoIterator<Item = T>) -> Acc {
+    fn lax_from_iter<T: IntoValues<Dec>>(&self, iter: impl IntoIterator<Item = T>) -> Acc {
         let mut acc = Acc::default();
-        for val in iter {
-            let _ = val.accumulate_to(&mut acc, &self.decoder);
+        for e in iter {
+            if let Some(values) = e.into_values(&self.decoder) {
+                for value in values {
+                    let _ = acc.accumulate(value);
+                }
+            }
         }
         acc
     }
@@ -447,24 +446,21 @@ where
     }
 }
 
-trait Accumulatable<Dec> {
-    fn accumulate_to(self, acc: &mut impl Accumulator, decoder: &Dec) -> AccumulateResult;
+trait IntoValues<Dec> {
+    fn into_values(self, decoder: &Dec) -> Option<impl IntoIterator<Item = u32>>;
 }
 
-impl<Dec> Accumulatable<Dec> for u32 {
+impl<Dec> IntoValues<Dec> for u32 {
     #[inline]
-    fn accumulate_to(self, acc: &mut impl Accumulator, _decoder: &Dec) -> AccumulateResult {
-        acc.accumulate(self)
+    fn into_values(self, _decoder: &Dec) -> Option<impl IntoIterator<Item = u32>> {
+        Some([self])
     }
 }
 
-impl<Dec: Decoder> Accumulatable<Dec> for char {
+impl<Dec: Decoder> IntoValues<Dec> for char {
     #[inline]
-    fn accumulate_to(self, acc: &mut impl Accumulator, decoder: &Dec) -> AccumulateResult {
-        match decoder.decode(self) {
-            Some(value) => acc.accumulate(value),
-            None => AccumulateResult::NotInCharset,
-        }
+    fn into_values(self, decoder: &Dec) -> Option<impl IntoIterator<Item = u32>> {
+        decoder.decode(self)
     }
 }
 
@@ -575,5 +571,28 @@ mod tests {
         assert!(mod11_2.verify_lax("32X37X"));
         assert!(mod11_2.verify_lax("3237XX"));
         assert!(mod11_2.verify_lax("3237X"));
+    }
+
+    #[test]
+    fn decode_iban() {
+        let sys: System<2, accumulator::Mod97_10, _, _> =
+            System::with_charset(charset::Numeric, |c: char| {
+                c.to_digit(36).map(|v| match v {
+                    ..=9 => [v, 0].into_iter().take(1),
+                    10.. => [v / 10, v % 10].into_iter().take(2),
+                })
+            });
+
+        let iban = "IE06BOFI90008412345671";
+        let iter = iban[4..].chars().chain(iban[..4].chars());
+        assert!(sys.verify_from_chars(iter).unwrap());
+
+        let iter = iban[4..].chars().chain(iban[..2].chars());
+        assert!(
+            sys.compute_from_chars(iter)
+                .unwrap()
+                .into_iter()
+                .eq(iban[2..4].chars())
+        );
     }
 }

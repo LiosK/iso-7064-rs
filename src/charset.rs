@@ -8,18 +8,15 @@ pub trait Encoder {
     fn encode(&self, v: u32) -> Option<char>;
 }
 
-/// A trait for decoding a character into its corresponding numerical value.
-///
-/// A decoder maps one character into one numerical value. For use cases where a character maps to
-/// multiple numerical values, see [`System::verify_from_values()`] for the idiomatic way to handle
-/// that.
-///
-/// [`System::verify_from_values()`]: crate::System::verify_from_values
+/// A trait for decoding a character into its corresponding numerical values.
 pub trait Decoder {
-    /// Decodes a character into its corresponding numerical value.
+    /// The decoded numerical values.
+    type Decoded: IntoIterator<Item = u32>;
+
+    /// Decodes a character into its corresponding numerical values.
     ///
     /// Returns `None` if the character is not part of this character set.
-    fn decode(&self, c: char) -> Option<u32>;
+    fn decode(&self, c: char) -> Option<Self::Decoded>;
 }
 
 /// A character set type representing numeric characters (`'0'`-`'9'`).
@@ -36,10 +33,12 @@ impl Encoder for Numeric {
 }
 
 impl Decoder for Numeric {
+    type Decoded = [u32; 1];
+
     #[inline]
-    fn decode(&self, c: char) -> Option<u32> {
+    fn decode(&self, c: char) -> Option<Self::Decoded> {
         match c {
-            '0'..='9' => Some(decode_ascii(c, b'0')),
+            '0'..='9' => Some([decode_ascii(c, b'0')]),
             _ => None,
         }
     }
@@ -63,11 +62,13 @@ impl Encoder for NumericX {
 }
 
 impl Decoder for NumericX {
+    type Decoded = [u32; 1];
+
     #[inline]
-    fn decode(&self, c: char) -> Option<u32> {
+    fn decode(&self, c: char) -> Option<Self::Decoded> {
         match c {
-            '0'..='9' => Some(decode_ascii(c, b'0')),
-            'X' => Some(10),
+            '0'..='9' => Some([decode_ascii(c, b'0')]),
+            'X' => Some([10]),
             _ => None,
         }
     }
@@ -89,10 +90,12 @@ impl Encoder for Alphabetic {
 }
 
 impl Decoder for Alphabetic {
+    type Decoded = [u32; 1];
+
     #[inline]
-    fn decode(&self, c: char) -> Option<u32> {
+    fn decode(&self, c: char) -> Option<Self::Decoded> {
         match c {
-            'A'..='Z' => Some(decode_ascii(c, b'A')),
+            'A'..='Z' => Some([decode_ascii(c, b'A')]),
             _ => None,
         }
     }
@@ -115,11 +118,13 @@ impl Encoder for Alphanumeric {
 }
 
 impl Decoder for Alphanumeric {
+    type Decoded = [u32; 1];
+
     #[inline]
-    fn decode(&self, c: char) -> Option<u32> {
+    fn decode(&self, c: char) -> Option<Self::Decoded> {
         match c {
-            '0'..='9' => Some(decode_ascii(c, b'0')),
-            'A'..='Z' => Some(decode_ascii(c, b'A' - 10)),
+            '0'..='9' => Some([decode_ascii(c, b'0')]),
+            'A'..='Z' => Some([decode_ascii(c, b'A' - 10)]),
             _ => None,
         }
     }
@@ -144,12 +149,14 @@ impl Encoder for AlphanumericAst {
 }
 
 impl Decoder for AlphanumericAst {
+    type Decoded = [u32; 1];
+
     #[inline]
-    fn decode(&self, c: char) -> Option<u32> {
+    fn decode(&self, c: char) -> Option<Self::Decoded> {
         match c {
-            '0'..='9' => Some(decode_ascii(c, b'0')),
-            'A'..='Z' => Some(decode_ascii(c, b'A' - 10)),
-            '*' => Some(36),
+            '0'..='9' => Some([decode_ascii(c, b'0')]),
+            'A'..='Z' => Some([decode_ascii(c, b'A' - 10)]),
+            '*' => Some([36]),
             _ => None,
         }
     }
@@ -162,9 +169,11 @@ impl<F: Fn(u32) -> Option<char>> Encoder for F {
     }
 }
 
-impl<F: Fn(char) -> Option<u32>> Decoder for F {
+impl<F: Fn(char) -> Option<I>, I: IntoIterator<Item = u32>> Decoder for F {
+    type Decoded = I;
+
     #[inline]
-    fn decode(&self, c: char) -> Option<u32> {
+    fn decode(&self, c: char) -> Option<Self::Decoded> {
         self(c)
     }
 }
@@ -183,7 +192,8 @@ fn decode_ascii(c: char, zero_value: u8) -> u32 {
 mod tests {
     use super::*;
 
-    const CHARSETS: &[(&dyn Encoder, &dyn Decoder, &str)] = &[
+    type DynDecoder = dyn Decoder<Decoded = [u32; 1]>;
+    const CHARSETS: &[(&dyn Encoder, &DynDecoder, &str)] = &[
         (&Numeric, &Numeric, "0123456789"),
         (&NumericX, &NumericX, "0123456789X"),
         (&Alphabetic, &Alphabetic, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
@@ -204,7 +214,7 @@ mod tests {
         for (enc, dec, charset) in CHARSETS {
             for (n, c) in charset.chars().enumerate() {
                 assert_eq!(enc.encode(n as u32).unwrap(), c);
-                assert_eq!(dec.decode(c).unwrap(), n as u32);
+                assert_eq!(dec.decode(c).unwrap(), [n as u32]);
             }
         }
     }
