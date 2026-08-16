@@ -6,7 +6,7 @@
 //! // Build a custom MOD 11,10 with case-insensitive alphabetic character set.
 //! let my_mod11_10 =
 //!     System::<1, accumulator::Mod11_10, _, _>::with_charset(charset::Alphabetic, |c: char| {
-//!         c.to_digit(36)?.checked_sub(10)
+//!         Some([c.to_digit(36)?.checked_sub(10)?])
 //!     });
 //!
 //! assert_eq!(my_mod11_10.compute("AhJe")?, ['F']);
@@ -347,25 +347,6 @@ where
     /// assert!(MOD27_26.verify_from_values(iter)?);
     /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
     /// ```
-    ///
-    /// The `_from_values` methods are handy for plugging in a custom decoding scheme.
-    ///
-    /// ```rust
-    /// use iso_7064::MOD97_10;
-    ///
-    /// // Verify an International Bank Account Number (IBAN).
-    /// let iban = "IE06BOFI90008412345671";
-    /// let iter = iban[4..].chars().chain(iban[..4].chars()).flat_map(|c| {
-    ///     // Decode letters into two-digit values (e.g., 'A' -> [1, 0]).
-    ///     match c.to_digit(36) {
-    ///         Some(v @ ..=9) => [v, 0].into_iter().take(1),
-    ///         Some(v @ 10..) => [v / 10, v % 10].into_iter().take(2),
-    ///         None => [u32::MAX, 0].into_iter().take(1),
-    ///     }
-    /// });
-    /// assert!(MOD97_10.verify_from_values(iter)?);
-    /// # Ok::<_, iso_7064::system::VerifyError<_>>(())
-    /// ```
     pub fn verify_from_values(
         &self,
         values: impl IntoIterator<Item = u32>,
@@ -479,7 +460,7 @@ impl<Dec> IntoValues<Dec> for u32 {
 impl<Dec: Decoder> IntoValues<Dec> for char {
     #[inline]
     fn into_values(self, decoder: &Dec) -> Option<impl IntoIterator<Item = u32>> {
-        decoder.decode(self).map(|v| [v])
+        decoder.decode(self)
     }
 }
 
@@ -590,5 +571,28 @@ mod tests {
         assert!(mod11_2.verify_lax("32X37X"));
         assert!(mod11_2.verify_lax("3237XX"));
         assert!(mod11_2.verify_lax("3237X"));
+    }
+
+    #[test]
+    fn decode_iban() {
+        let sys: System<2, accumulator::Mod97_10, _, _> =
+            System::with_charset(charset::Numeric, |c: char| {
+                c.to_digit(36).map(|v| match v {
+                    ..=9 => [v, 0].into_iter().take(1),
+                    10.. => [v / 10, v % 10].into_iter().take(2),
+                })
+            });
+
+        let iban = "IE06BOFI90008412345671";
+        let iter = iban[4..].chars().chain(iban[..4].chars());
+        assert!(sys.verify_from_chars(iter).unwrap());
+
+        let iter = iban[4..].chars().chain(iban[..2].chars());
+        assert!(
+            sys.compute_from_chars(iter)
+                .unwrap()
+                .into_iter()
+                .eq(iban[2..4].chars())
+        );
     }
 }
