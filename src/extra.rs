@@ -93,7 +93,6 @@ const fn gtin_sum(w1: u32, w3: u32) -> u32 {
 }
 
 #[cold]
-#[inline(always)]
 const fn cold_rem<const MODULUS: u32>(carry: u32) -> u32 {
     carry % MODULUS
 }
