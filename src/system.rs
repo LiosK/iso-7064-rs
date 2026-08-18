@@ -3,15 +3,17 @@
 //! ```rust
 //! use iso_7064::{accumulator, charset, system::System};
 //!
-//! // Build a custom MOD 11,10 with case-insensitive alphabetic character set.
-//! let my_mod11_10 =
-//!     System::<1, accumulator::Mod11_10, _, _>::with_charset(charset::Alphabetic, |c: char| {
-//!         Some([c.to_digit(36)?.checked_sub(10)?])
+//! // Build a custom MOD 11,10 that decodes a letter into two digits (e.g., 'A' -> [1, 0]).
+//! let my_mod11_10: System<1, accumulator::Mod11_10, _, _> =
+//!     System::with_charset(charset::Numeric, |c: char| {
+//!         c.to_digit(36).map(|v| match v {
+//!             ..=9 => [v, 0].into_iter().take(1),
+//!             10.. => [v / 10, v % 10].into_iter().take(2),
+//!         })
 //!     });
 //!
-//! assert_eq!(my_mod11_10.compute("AhJe")?, ['F']);
-//! assert!(my_mod11_10.verify("aHjEf")?);
-//! assert!(my_mod11_10.verify("AhJe5").is_err());
+//! assert_eq!(my_mod11_10.compute("FGR895")?, ['0']);
+//! assert!(my_mod11_10.verify("fgr8950")?);
 //! # Ok::<_, Box<dyn core::error::Error>>(())
 //! ```
 
