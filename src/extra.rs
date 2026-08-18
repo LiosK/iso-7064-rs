@@ -210,4 +210,21 @@ mod tests {
 
         random_inner::<GtinAcc>(naive_fn);
     }
+
+    #[test]
+    fn decode_isin() {
+        let sys: System<1, LuhnAcc, _, _> = System::with_charset(Numeric, |c: char| {
+            c.to_digit(36).map(|v| match v {
+                ..=9 => [v, 0].into_iter().take(1),
+                10.. => [v / 10, v % 10].into_iter().take(2),
+            })
+        });
+
+        let isin = "US0378331005";
+        assert!(sys.verify(isin).unwrap());
+
+        let mut chars = isin.chars();
+        let cc = chars.next_back().unwrap();
+        assert_eq!(sys.compute(chars.as_str()).unwrap(), [cc]);
+    }
 }
