@@ -211,6 +211,101 @@ mod tests {
         random_inner::<GtinAcc>(naive_fn);
     }
 
+    fn prepared_inner<const N_CC: usize, Acc>(
+        sys: System<N_CC, Acc, Numeric, Numeric>,
+        valid: &[&str],
+        invalid: &[&str],
+    ) where
+        Acc: Accumulator<Computed = [u32; N_CC]> + Default,
+    {
+        for &s in valid {
+            assert!(sys.verify(s).unwrap());
+            assert!(sys.verify_lax(s));
+            assert!(sys.verify_from_chars(s.chars()).unwrap());
+
+            let (u, cc) = s.split_at(s.len() - N_CC);
+            assert!(cc.chars().eq(sys.compute(u).unwrap()));
+            assert!(cc.chars().eq(sys.compute_lax(u)));
+            assert!(cc.chars().eq(sys.compute_from_chars(u.chars()).unwrap()));
+        }
+
+        for &s in invalid {
+            assert!(!sys.verify(s).unwrap());
+            assert!(!sys.verify_lax(s));
+            assert!(!sys.verify_from_chars(s.chars()).unwrap());
+        }
+    }
+
+    #[test]
+    fn prepared_luhn() {
+        let valid = &[
+            "546623412242598542363",
+            "429869407",
+            "697482027002074929657",
+            "24427809",
+            "40945102099",
+            "7765910180673709242",
+            "0334754482118806638",
+            "353159977932780875001",
+            "24221502320077397",
+            "55281270707218379",
+            "42861648824",
+            "60932589014642580",
+        ];
+
+        let invalid = &[
+            "743638155913",
+            "89472241187133",
+            "741010972016880174648",
+            "6044520638804741920",
+            "51212175412516688233",
+            "76245165717037759",
+            "6366487495713270993924",
+            "23742667215749",
+            "2986089939865",
+            "44932344897270",
+            "16693589271944940",
+            "2222675562",
+        ];
+
+        prepared_inner(LUHN, valid, invalid);
+    }
+
+    #[test]
+    fn prepared_gtin() {
+        let valid = &[
+            "9201696531",
+            "49950385619451233889",
+            "36147121450673678056505",
+            "89051525687652679018",
+            "177945840022586907",
+            "040966595",
+            "4616160305150",
+            "32573277760920769",
+            "125119223031",
+            "53748599212771",
+            "858821862656667",
+            "64718330",
+        ];
+
+        let invalid = &[
+            "1320267506819606688870",
+            "3244530282",
+            "9808980103049501991713",
+            "10830077677580",
+            "72636966152958653",
+            "097892315743878",
+            "83641903781222688830",
+            "49941940257492255012045",
+            "17618635417724453339",
+            "1645108330301674",
+            "9645092905763",
+            "61928210334114471550661",
+        ];
+
+        prepared_inner(GTIN, valid, invalid);
+    }
+
     #[test]
     fn decode_isin() {
         let sys: System<1, LuhnAcc, _, _> = System::with_charset(Numeric, |c: char| {
