@@ -100,6 +100,7 @@ const fn cold_rem<const MODULUS: u32>(carry: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::prepared_inner;
 
     fn accumulate_values(acc: &mut impl Accumulator, values: impl IntoIterator<Item = u32>) {
         for value in values {
@@ -209,31 +210,6 @@ mod tests {
         }
 
         random_inner::<GtinAcc>(naive_fn);
-    }
-
-    fn prepared_inner<const N_CC: usize, Acc>(
-        sys: System<N_CC, Acc, Numeric, Numeric>,
-        valid: &[&str],
-        invalid: &[&str],
-    ) where
-        Acc: Accumulator<Computed = [u32; N_CC]> + Default,
-    {
-        for &s in valid {
-            assert!(sys.verify(s).unwrap());
-            assert!(sys.verify_lax(s));
-            assert!(sys.verify_from_chars(s.chars()).unwrap());
-
-            let (u, cc) = s.split_at(s.len() - N_CC);
-            assert!(cc.chars().eq(sys.compute(u).unwrap()));
-            assert!(cc.chars().eq(sys.compute_lax(u)));
-            assert!(cc.chars().eq(sys.compute_from_chars(u.chars()).unwrap()));
-        }
-
-        for &s in invalid {
-            assert!(!sys.verify(s).unwrap());
-            assert!(!sys.verify_lax(s));
-            assert!(!sys.verify_from_chars(s.chars()).unwrap());
-        }
     }
 
     #[test]
