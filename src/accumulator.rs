@@ -288,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    fn examples_mod_11_2() {
+    fn examples_mod11_2() {
         let mut acc = Mod11_2::default();
         accumulate_values(&mut acc, [0, 7, 9, 4]);
         assert_eq!(acc.compute(), [0]);
@@ -303,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn examples_mod_97_10() {
+    fn examples_mod97_10() {
         let mut acc = Mod97_10::default();
         accumulate_values(&mut acc, [7, 9, 4]);
         assert_eq!(acc.compute(), [4, 4]);
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn examples_mod_1271_36() {
+    fn examples_mod1271_36() {
         let mut acc = Mod1271_36::default();
         accumulate_values(&mut acc, [18, 28, 24, 7, 9]);
         assert_eq!(acc.compute(), [3, 32]);
@@ -321,7 +321,7 @@ mod tests {
     }
 
     #[test]
-    fn examples_mod_11_10() {
+    fn examples_mod11_10() {
         let mut acc = Mod11_10::default();
         accumulate_values(&mut acc, [0, 7, 9, 4]);
         assert_eq!(acc.compute(), [5]);
