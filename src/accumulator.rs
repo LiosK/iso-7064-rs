@@ -150,16 +150,17 @@ impl<const MODULUS: u32, const CHARSET_SIZE: u32> PureDouble<MODULUS, CHARSET_SI
 }
 
 #[inline(always)]
-const fn step_pure<const MODULUS: u32, const RADIX: u32>(mut carry: u32, value: u32) -> u32 {
+const fn step_pure<const MODULUS: u32, const RADIX: u32>(carry: u32, value: u32) -> u32 {
     if carry > (u32::MAX - MODULUS) / RADIX {
         #[cold]
-        const fn cold_rem<const MODULUS: u32>(carry: u32) -> u32 {
-            carry % MODULUS
+        const fn with_u64<const MODULUS: u32, const RADIX: u32>(carry: u32, value: u32) -> u64 {
+            (carry as u64 * RADIX as u64 + value as u64) % MODULUS as u64
         }
 
-        carry = cold_rem::<MODULUS>(carry);
+        with_u64::<MODULUS, RADIX>(carry, value) as u32
+    } else {
+        carry * RADIX + value
     }
-    carry * RADIX + value
 }
 
 #[inline(always)]
