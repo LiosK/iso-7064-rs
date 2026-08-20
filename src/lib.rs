@@ -133,6 +133,11 @@ fn prepared_inner<const N_CC: usize, Acc, Enc, Dec>(
         assert!(!sys.verify(s).unwrap());
         assert!(!sys.verify_lax(s));
         assert!(!sys.verify_from_chars(s.chars()).unwrap());
+
+        let (u, cc) = s.split_at(s.len() - N_CC);
+        assert!(!cc.chars().eq(sys.compute(u).unwrap()));
+        assert!(!cc.chars().eq(sys.compute_lax(u)));
+        assert!(!cc.chars().eq(sys.compute_from_chars(u.chars()).unwrap()));
     }
 }
 
