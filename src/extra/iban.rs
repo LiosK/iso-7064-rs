@@ -312,6 +312,14 @@ mod tests {
 
         for iban in examples {
             assert!(IBAN.verify(iban).unwrap(), "{}", iban);
+
+            assert!(
+                iban[2..4]
+                    .chars()
+                    .eq(IBAN.compute(&iban[..2], &iban[4..]).unwrap()),
+                "{}",
+                iban
+            );
         }
     }
 
@@ -326,6 +334,14 @@ mod tests {
 
         for iban in examples {
             assert!(!IBAN.verify(iban).unwrap(), "{}", iban);
+
+            assert!(
+                !iban[2..4]
+                    .chars()
+                    .eq(IBAN.compute(&iban[..2], &iban[4..]).unwrap()),
+                "{}",
+                iban
+            );
         }
     }
 }
