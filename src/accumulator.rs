@@ -274,23 +274,18 @@ pub type Mod37_36 = Hybrid<36>;
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn accumulate_values(acc: &mut impl Accumulator, values: impl IntoIterator<Item = u32>) {
-        for value in values {
-            assert_eq!(acc.accumulate(value), AccumulateResult::Processed);
-        }
-    }
+    use crate::test_util;
 
     #[test]
     fn examples_mod11_2() {
         let mut acc = Mod11_2::default();
-        accumulate_values(&mut acc, [0, 7, 9, 4]);
+        test_util::accumulate_values(&mut acc, [0, 7, 9, 4]);
         assert_eq!(acc.compute(), [0]);
-        accumulate_values(&mut acc, [0]);
+        test_util::accumulate_values(&mut acc, [0]);
         assert!(acc.verify());
 
         let mut acc = Mod11_2::default();
-        accumulate_values(&mut acc, [0, 7, 9]);
+        test_util::accumulate_values(&mut acc, [0, 7, 9]);
         assert_eq!(acc.compute(), [10]);
         assert_eq!(acc.accumulate(10), AccumulateResult::SupplFound);
         assert!(acc.verify());
@@ -299,27 +294,27 @@ mod tests {
     #[test]
     fn examples_mod97_10() {
         let mut acc = Mod97_10::default();
-        accumulate_values(&mut acc, [7, 9, 4]);
+        test_util::accumulate_values(&mut acc, [7, 9, 4]);
         assert_eq!(acc.compute(), [4, 4]);
-        accumulate_values(&mut acc, [4, 4]);
+        test_util::accumulate_values(&mut acc, [4, 4]);
         assert!(acc.verify());
     }
 
     #[test]
     fn examples_mod1271_36() {
         let mut acc = Mod1271_36::default();
-        accumulate_values(&mut acc, [18, 28, 24, 7, 9]);
+        test_util::accumulate_values(&mut acc, [18, 28, 24, 7, 9]);
         assert_eq!(acc.compute(), [3, 32]);
-        accumulate_values(&mut acc, [3, 32]);
+        test_util::accumulate_values(&mut acc, [3, 32]);
         assert!(acc.verify());
     }
 
     #[test]
     fn examples_mod11_10() {
         let mut acc = Mod11_10::default();
-        accumulate_values(&mut acc, [0, 7, 9, 4]);
+        test_util::accumulate_values(&mut acc, [0, 7, 9, 4]);
         assert_eq!(acc.compute(), [5]);
-        accumulate_values(&mut acc, [5]);
+        test_util::accumulate_values(&mut acc, [5]);
         assert!(acc.verify());
     }
 
@@ -360,7 +355,7 @@ mod tests {
         fn run<const MODULUS: u32, const CHARSET_SIZE: u32>(
             mut acc: PureDouble<MODULUS, CHARSET_SIZE>,
         ) {
-            accumulate_values(&mut acc, 0..CHARSET_SIZE);
+            test_util::accumulate_values(&mut acc, 0..CHARSET_SIZE);
 
             let carry = acc.carry;
             for value in CHARSET_SIZE..2048 {
@@ -379,7 +374,7 @@ mod tests {
     #[test]
     fn boundaries_hybrid() {
         fn run<const CHARSET_SIZE: u32>(mut acc: Hybrid<CHARSET_SIZE>) {
-            accumulate_values(&mut acc, 0..CHARSET_SIZE);
+            test_util::accumulate_values(&mut acc, 0..CHARSET_SIZE);
 
             let carry = acc.carry;
             for value in CHARSET_SIZE..2048 {
@@ -403,15 +398,15 @@ mod tests {
             Acc: Accumulator<Computed = [u32; 2]> + Default,
         {
             let mut acc = Acc::default();
-            accumulate_values(&mut acc, s.iter().copied());
+            test_util::accumulate_values(&mut acc, s.iter().copied());
             assert_eq!(acc.compute(), cc);
 
-            accumulate_values(&mut acc, cc.iter().copied());
+            test_util::accumulate_values(&mut acc, cc.iter().copied());
             assert!(acc.verify());
 
             let mut alt = Acc::default();
-            accumulate_values(&mut alt, s.iter().copied());
-            accumulate_values(&mut alt, cc_alt.iter().copied());
+            test_util::accumulate_values(&mut alt, s.iter().copied());
+            test_util::accumulate_values(&mut alt, cc_alt.iter().copied());
             assert!(alt.verify());
         }
 

@@ -127,32 +127,26 @@ const fn cold_rem<const MODULUS: u32>(carry: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::prepared_inner;
-
-    fn accumulate_values(acc: &mut impl Accumulator, values: impl IntoIterator<Item = u32>) {
-        for value in values {
-            assert_eq!(acc.accumulate(value), AccumulateResult::Processed);
-        }
-    }
+    use crate::test_util;
 
     #[test]
     fn examples_luhn() {
         let mut acc = LuhnAcc::default();
-        accumulate_values(&mut acc, [4, 8, 7, 2, 1, 4, 8]);
+        test_util::accumulate_values(&mut acc, [4, 8, 7, 2, 1, 4, 8]);
         assert_eq!(acc.compute(), [4]);
-        accumulate_values(&mut acc, [4]);
+        test_util::accumulate_values(&mut acc, [4]);
         assert!(acc.verify());
     }
 
     #[test]
     fn examples_gs1() {
         let mut acc = Gs1Acc::default();
-        accumulate_values(
+        test_util::accumulate_values(
             &mut acc,
             [3, 7, 6, 1, 0, 4, 2, 5, 0, 0, 2, 1, 2, 3, 4, 5, 6],
         );
         assert_eq!(acc.compute(), [9]);
-        accumulate_values(&mut acc, [9]);
+        test_util::accumulate_values(&mut acc, [9]);
         assert!(acc.verify());
     }
 
@@ -160,7 +154,7 @@ mod tests {
     fn boundaries_luhn() {
         let mut acc = LuhnAcc::default();
 
-        accumulate_values(&mut acc, 0..10);
+        test_util::accumulate_values(&mut acc, 0..10);
 
         let carry = acc.carry;
         for value in 10..2048 {
@@ -173,7 +167,7 @@ mod tests {
     fn boundaries_gs1() {
         let mut acc = Gs1Acc::default();
 
-        accumulate_values(&mut acc, 0..10);
+        test_util::accumulate_values(&mut acc, 0..10);
 
         let carry = acc.carry;
         for value in 10..2048 {
@@ -271,7 +265,7 @@ mod tests {
             "2222675562",
         ];
 
-        prepared_inner(LUHN, valid, invalid);
+        test_util::prepared_inner(LUHN, valid, invalid);
     }
 
     #[test]
@@ -306,7 +300,7 @@ mod tests {
             "61928210334114471550661",
         ];
 
-        prepared_inner(GS1, valid, invalid);
+        test_util::prepared_inner(GS1, valid, invalid);
     }
 
     #[test]
