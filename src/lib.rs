@@ -101,22 +101,23 @@ pub const MOD27_26: system::Mod27_26 =
 pub const MOD37_36: system::Mod37_36 =
     System::with_charset(charset::Alphanumeric, charset::Alphanumeric);
 
-#[inline(always)]
-const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
-    debug_assert!(lhs < rhs * 2);
-    if lhs < rhs { lhs } else { lhs - rhs }
-}
-
-#[cold]
-const fn cold_rem(lhs: u32, rhs: u32) -> u32 {
-    lhs % rhs
-}
-
-#[cfg(test)]
-mod test_util {
+mod util {
+    #[cfg(test)]
     use crate::{accumulator, charset, system};
 
-    pub(crate) fn accumulate_values(
+    #[inline(always)]
+    pub const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
+        debug_assert!(lhs < rhs * 2);
+        if lhs < rhs { lhs } else { lhs - rhs }
+    }
+
+    #[cold]
+    pub const fn cold_rem(lhs: u32, rhs: u32) -> u32 {
+        lhs % rhs
+    }
+
+    #[cfg(test)]
+    pub fn accumulate_values(
         acc: &mut impl accumulator::Accumulator,
         values: impl IntoIterator<Item = u32>,
     ) {
@@ -126,7 +127,8 @@ mod test_util {
         }
     }
 
-    pub(crate) fn prepared_inner<const N_CC: usize, Acc, Enc, Dec>(
+    #[cfg(test)]
+    pub fn prepared_inner<const N_CC: usize, Acc, Enc, Dec>(
         sys: system::System<N_CC, Acc, Enc, Dec>,
         valid: &[&str],
         invalid: &[&str],
@@ -249,7 +251,7 @@ mod tests {
             "91229388880062347394",
         ];
 
-        test_util::prepared_inner(MOD11_2, valid, invalid);
+        util::prepared_inner(MOD11_2, valid, invalid);
     }
 
     #[test]
@@ -284,7 +286,7 @@ mod tests {
             "1RH1UQOSY5OQSJU28MUP0U*",
         ];
 
-        test_util::prepared_inner(MOD37_2, valid, invalid);
+        util::prepared_inner(MOD37_2, valid, invalid);
     }
 
     #[test]
@@ -319,7 +321,7 @@ mod tests {
             "653007253600637706",
         ];
 
-        test_util::prepared_inner(MOD97_10, valid, invalid);
+        util::prepared_inner(MOD97_10, valid, invalid);
     }
 
     #[test]
@@ -354,7 +356,7 @@ mod tests {
             "HGXBYJGF",
         ];
 
-        test_util::prepared_inner(MOD661_26, valid, invalid);
+        util::prepared_inner(MOD661_26, valid, invalid);
     }
 
     #[test]
@@ -389,7 +391,7 @@ mod tests {
             "3M1ZN4WOJ8",
         ];
 
-        test_util::prepared_inner(MOD1271_36, valid, invalid);
+        util::prepared_inner(MOD1271_36, valid, invalid);
     }
 
     #[test]
@@ -424,7 +426,7 @@ mod tests {
             "543551782",
         ];
 
-        test_util::prepared_inner(MOD11_10, valid, invalid);
+        util::prepared_inner(MOD11_10, valid, invalid);
     }
 
     #[test]
@@ -459,7 +461,7 @@ mod tests {
             "QYFMMQPXIMLOAP",
         ];
 
-        test_util::prepared_inner(MOD27_26, valid, invalid);
+        util::prepared_inner(MOD27_26, valid, invalid);
     }
 
     #[test]
@@ -494,6 +496,6 @@ mod tests {
             "FU8SP3V1JOTICTZ",
         ];
 
-        test_util::prepared_inner(MOD37_36, valid, invalid);
+        util::prepared_inner(MOD37_36, valid, invalid);
     }
 }

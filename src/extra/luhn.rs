@@ -1,5 +1,5 @@
 use crate::accumulator::{AccumulateResult, Accumulator};
-use crate::{charset::Numeric, cold_rem, spec_rem, system::System};
+use crate::{charset::Numeric, system::System, util};
 
 /// The Luhn algorithm.
 ///
@@ -26,7 +26,7 @@ impl Accumulator for LuhnAcc {
         } else {
             let (mut a, b) = self.carry;
             if a > u32::MAX - 10 * 2 {
-                a = cold_rem(a, 10);
+                a = util::cold_rem(a, 10);
             }
             self.carry.0 = b + value;
             self.carry.1 = a + if value < 5 { value * 2 } else { value * 2 - 9 };
@@ -36,7 +36,7 @@ impl Accumulator for LuhnAcc {
     }
 
     fn compute(&self) -> Self::Computed {
-        [spec_rem(10 - self.carry.1 % 10, 10)]
+        [util::spec_rem(10 - self.carry.1 % 10, 10)]
     }
 
     fn verify(&self) -> bool {
@@ -50,14 +50,13 @@ use super::random_luhn_gs1_inner;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_util;
 
     #[test]
     fn examples() {
         let mut acc = LuhnAcc::default();
-        test_util::accumulate_values(&mut acc, [4, 8, 7, 2, 1, 4, 8]);
+        util::accumulate_values(&mut acc, [4, 8, 7, 2, 1, 4, 8]);
         assert_eq!(acc.compute(), [4]);
-        test_util::accumulate_values(&mut acc, [4]);
+        util::accumulate_values(&mut acc, [4]);
         assert!(acc.verify());
     }
 
@@ -65,7 +64,7 @@ mod tests {
     fn boundaries() {
         let mut acc = LuhnAcc::default();
 
-        test_util::accumulate_values(&mut acc, 0..10);
+        util::accumulate_values(&mut acc, 0..10);
 
         let carry = acc.carry;
         for value in 10..2048 {
@@ -121,7 +120,7 @@ mod tests {
             "2222675562",
         ];
 
-        test_util::prepared_inner(LUHN, valid, invalid);
+        util::prepared_inner(LUHN, valid, invalid);
     }
 
     #[test]

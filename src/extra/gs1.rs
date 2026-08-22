@@ -1,5 +1,5 @@
 use crate::accumulator::{AccumulateResult, Accumulator};
-use crate::{charset::Numeric, cold_rem, spec_rem, system::System};
+use crate::{charset::Numeric, system::System, util};
 
 /// The standard check digit algorithm for GS1 data structures (including GTIN).
 ///
@@ -27,7 +27,7 @@ impl Accumulator for Gs1Acc {
         } else {
             let (mut a, b) = self.carry;
             if a > u32::MAX - 10 {
-                a = cold_rem(a, 10);
+                a = util::cold_rem(a, 10);
             }
             self.carry = (b, a + value);
             self.has_processed = true;
@@ -36,7 +36,7 @@ impl Accumulator for Gs1Acc {
     }
 
     fn compute(&self) -> Self::Computed {
-        [spec_rem(10 - gs1_sum(self.carry.0, self.carry.1), 10)]
+        [util::spec_rem(10 - gs1_sum(self.carry.0, self.carry.1), 10)]
     }
 
     fn verify(&self) -> bool {
@@ -54,17 +54,16 @@ use super::random_luhn_gs1_inner;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_util;
 
     #[test]
     fn examples() {
         let mut acc = Gs1Acc::default();
-        test_util::accumulate_values(
+        util::accumulate_values(
             &mut acc,
             [3, 7, 6, 1, 0, 4, 2, 5, 0, 0, 2, 1, 2, 3, 4, 5, 6],
         );
         assert_eq!(acc.compute(), [9]);
-        test_util::accumulate_values(&mut acc, [9]);
+        util::accumulate_values(&mut acc, [9]);
         assert!(acc.verify());
     }
 
@@ -72,7 +71,7 @@ mod tests {
     fn boundaries() {
         let mut acc = Gs1Acc::default();
 
-        test_util::accumulate_values(&mut acc, 0..10);
+        util::accumulate_values(&mut acc, 0..10);
 
         let carry = acc.carry;
         for value in 10..2048 {
@@ -127,6 +126,6 @@ mod tests {
             "61928210334114471550661",
         ];
 
-        test_util::prepared_inner(GS1, valid, invalid);
+        util::prepared_inner(GS1, valid, invalid);
     }
 }
