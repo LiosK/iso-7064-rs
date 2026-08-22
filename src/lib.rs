@@ -107,6 +107,11 @@ const fn spec_rem(lhs: u32, rhs: u32) -> u32 {
     if lhs < rhs { lhs } else { lhs - rhs }
 }
 
+#[cold]
+const fn cold_rem(lhs: u32, rhs: u32) -> u32 {
+    lhs % rhs
+}
+
 #[cfg(test)]
 mod test_util {
     use crate::{accumulator, charset, system};
