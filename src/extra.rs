@@ -1,4 +1,23 @@
-//! Types for other supported algorithms than ISO/IEC 7064.
+//! Check character algorithms other than ISO/IEC 7064.
+//!
+//! This module provides [`System`] instances and [`Accumulator`] implementations for other widely
+//! used check digit algorithms:
+//!
+//! - [`LUHN`]: The Luhn algorithm (also known as the MOD 10 algorithm), widely used in credit card
+//!   numbers, IMEI numbers, and National Provider Identifiers.
+//! - [`GTIN`]: The standard check digit algorithm for GS1 data structures (including GTIN-8,
+//!   GTIN-12 / UPC, GTIN-13 / EAN-13, GTIN-14, and SSCC).
+//!
+//! ```rust
+//! use iso_7064::extra::{GTIN, LUHN};
+//!
+//! assert_eq!(LUHN.compute("1789372997")?, ['4']);
+//! assert!(LUHN.verify("17893729974")?);
+//!
+//! assert_eq!(GTIN.compute("9761234500001")?, ['8']);
+//! assert!(GTIN.verify("97612345000018")?);
+//! # Ok::<_, Box<dyn core::error::Error>>(())
+//! ```
 
 use crate::accumulator::{AccumulateResult, Accumulator};
 use crate::{charset::Numeric, spec_rem, system::System};
@@ -54,7 +73,7 @@ impl Accumulator for LuhnAcc {
     }
 }
 
-/// An accumulator for the check digit algorithm for GS1 data structures.
+/// An accumulator for the check digit algorithm for GS1 data structures (including GTIN).
 #[derive(Debug, Clone, Default)]
 pub struct GtinAcc {
     carry: (u32, u32),
