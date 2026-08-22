@@ -11,7 +11,9 @@ pub trait Encoder {
 /// A trait for decoding a character into its corresponding numerical values.
 pub trait Decoder {
     /// The decoded numerical values.
-    type Decoded: IntoIterator<Item = u32>;
+    ///
+    /// This type should generally implement `IntoIterator<Item = u32>`.
+    type Decoded;
 
     /// Decodes a character into its corresponding numerical values.
     ///
@@ -169,8 +171,8 @@ impl<F: Fn(u32) -> Option<char>> Encoder for F {
     }
 }
 
-impl<F: Fn(char) -> Option<I>, I: IntoIterator<Item = u32>> Decoder for F {
-    type Decoded = I;
+impl<F: Fn(char) -> Option<D>, D> Decoder for F {
+    type Decoded = D;
 
     #[inline]
     fn decode(&self, c: char) -> Option<Self::Decoded> {

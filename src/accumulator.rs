@@ -18,6 +18,8 @@ use crate::spec_rem;
 /// A trait for accumulating values to compute or verify check characters.
 pub trait Accumulator {
     /// The numerical values of the computed check characters.
+    ///
+    /// This type should generally implement `IntoIterator<Item = u32>`.
     type Computed;
 
     /// Accumulates a numerical value, returning the result of the step as an [`AccumulateResult`].

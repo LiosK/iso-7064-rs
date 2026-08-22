@@ -49,7 +49,7 @@ impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
 where
     Acc: Accumulator<Computed = [u32; N_CC]> + Default,
     Enc: Encoder,
-    Dec: Decoder,
+    Dec: Decoder<Decoded: IntoIterator<Item = u32>>,
 {
     /// Computes the check characters for the string `s` and appends them.
     ///
@@ -212,7 +212,7 @@ where
 impl<const N_CC: usize, Acc, Enc, Dec> System<N_CC, Acc, Enc, Dec>
 where
     Acc: Accumulator + Default,
-    Dec: Decoder,
+    Dec: Decoder<Decoded: IntoIterator<Item = u32>>,
 {
     /// Verifies whether the check characters in the string `s` are valid.
     ///
@@ -459,7 +459,10 @@ impl<Dec> IntoValues<Dec> for u32 {
     }
 }
 
-impl<Dec: Decoder> IntoValues<Dec> for char {
+impl<Dec> IntoValues<Dec> for char
+where
+    Dec: Decoder<Decoded: IntoIterator<Item = u32>>,
+{
     #[inline]
     fn into_values(self, decoder: &Dec) -> Option<impl IntoIterator<Item = u32>> {
         decoder.decode(self)

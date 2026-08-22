@@ -133,7 +133,7 @@ mod test_util {
     ) where
         Acc: accumulator::Accumulator<Computed = [u32; N_CC]> + Default,
         Enc: charset::Encoder,
-        Dec: charset::Decoder,
+        Dec: charset::Decoder<Decoded: IntoIterator<Item = u32>>,
     {
         for &s in valid {
             assert!(sys.verify(s).unwrap());
