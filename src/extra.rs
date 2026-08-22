@@ -5,17 +5,17 @@
 //!
 //! - [`LUHN`]: The Luhn algorithm (also known as the MOD 10 algorithm), widely used in credit card
 //!   numbers, IMEI numbers, and National Provider Identifiers.
-//! - [`GTIN`]: The standard check digit algorithm for GS1 data structures (including GTIN-8,
-//!   GTIN-12 / UPC, GTIN-13 / EAN-13, GTIN-14, and SSCC).
+//! - [`GS1`]: The standard check digit algorithm for GS1 data structures (including GTIN-8, GTIN-12
+//!   / UPC, GTIN-13 / EAN-13, GTIN-14, and SSCC).
 //!
 //! ```rust
-//! use iso_7064::extra::{GTIN, LUHN};
+//! use iso_7064::extra::{GS1, LUHN};
 //!
 //! assert_eq!(LUHN.compute("1789372997")?, ['4']);
 //! assert!(LUHN.verify("17893729974")?);
 //!
-//! assert_eq!(GTIN.compute("9761234500001")?, ['8']);
-//! assert!(GTIN.verify("97612345000018")?);
+//! assert_eq!(GS1.compute("9761234500001")?, ['8']);
+//! assert!(GS1.verify("97612345000018")?);
 //! # Ok::<_, Box<dyn core::error::Error>>(())
 //! ```
 
@@ -30,13 +30,13 @@ pub const LUHN: Luhn = System::with_charset(Numeric, Numeric);
 /// The standard check digit algorithm for GS1 data structures (including GTIN).
 ///
 /// See the [`System`] type for provided methods.
-pub const GTIN: Gtin = System::with_charset(Numeric, Numeric);
+pub const GS1: Gs1 = System::with_charset(Numeric, Numeric);
 
 /// The Luhn algorithm.
 pub type Luhn = System<1, LuhnAcc, Numeric, Numeric>;
 
 /// The standard check digit algorithm for GS1 data structures (including GTIN).
-pub type Gtin = System<1, GtinAcc, Numeric, Numeric>;
+pub type Gs1 = System<1, Gs1Acc, Numeric, Numeric>;
 
 /// An accumulator for the Luhn algorithm.
 #[derive(Debug, Clone, Default)]
@@ -75,12 +75,12 @@ impl Accumulator for LuhnAcc {
 
 /// An accumulator for the check digit algorithm for GS1 data structures (including GTIN).
 #[derive(Debug, Clone, Default)]
-pub struct GtinAcc {
+pub struct Gs1Acc {
     carry: (u32, u32),
     has_processed: bool,
 }
 
-impl Accumulator for GtinAcc {
+impl Accumulator for Gs1Acc {
     type Computed = [u32; 1];
 
     #[inline]
@@ -99,15 +99,15 @@ impl Accumulator for GtinAcc {
     }
 
     fn compute(&self) -> Self::Computed {
-        [spec_rem(10 - gtin_sum(self.carry.0, self.carry.1), 10)]
+        [spec_rem(10 - gs1_sum(self.carry.0, self.carry.1), 10)]
     }
 
     fn verify(&self) -> bool {
-        self.has_processed && gtin_sum(self.carry.1, self.carry.0) == 0
+        self.has_processed && gs1_sum(self.carry.1, self.carry.0) == 0
     }
 }
 
-const fn gtin_sum(w1: u32, w3: u32) -> u32 {
+const fn gs1_sum(w1: u32, w3: u32) -> u32 {
     ((w1 as u64 + w3 as u64 * 3) % 10) as u32
 }
 
@@ -137,8 +137,8 @@ mod tests {
     }
 
     #[test]
-    fn examples_gtin() {
-        let mut acc = GtinAcc::default();
+    fn examples_gs1() {
+        let mut acc = Gs1Acc::default();
         accumulate_values(
             &mut acc,
             [3, 7, 6, 1, 0, 4, 2, 5, 0, 0, 2, 1, 2, 3, 4, 5, 6],
@@ -162,8 +162,8 @@ mod tests {
     }
 
     #[test]
-    fn boundaries_gtin() {
-        let mut acc = GtinAcc::default();
+    fn boundaries_gs1() {
+        let mut acc = Gs1Acc::default();
 
         accumulate_values(&mut acc, 0..10);
 
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn random_gtin() {
+    fn random_gs1() {
         fn naive_fn(values: &[u32]) -> u32 {
             let mut carry = 0;
             for (i, &v) in values.iter().rev().enumerate() {
@@ -228,7 +228,7 @@ mod tests {
             (10 - carry) % 10
         }
 
-        random_inner::<GtinAcc>(naive_fn);
+        random_inner::<Gs1Acc>(naive_fn);
     }
 
     #[test]
@@ -267,7 +267,7 @@ mod tests {
     }
 
     #[test]
-    fn prepared_gtin() {
+    fn prepared_gs1() {
         let valid = &[
             "9201696531",
             "49950385619451233889",
@@ -298,7 +298,7 @@ mod tests {
             "61928210334114471550661",
         ];
 
-        prepared_inner(GTIN, valid, invalid);
+        prepared_inner(GS1, valid, invalid);
     }
 
     #[test]
