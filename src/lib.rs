@@ -39,8 +39,10 @@
 //! | ISO/IEC 7064, MOD 27,26   | Hybrid | Alphabetic (`A-Z`)      | 1 letter (`A-Z`)                      |
 //! | ISO/IEC 7064, MOD 37,36   | Hybrid | Alphanumeric (`0-9A-Z`) | 1 digit or letter (`0-9A-Z`)          |
 //!
-//! This library also provides support for the variant of MOD 97-10 used in the
-//! International Bank Account Number (IBAN).
+//! This library also provides support, under the `extra` module, for the variant of
+//! MOD 97-10 used in the International Bank Account Number (IBAN). The `extra`
+//! module additionally supports other widely used check character algorithms
+//! besides those in ISO/IEC 7064, namely Luhn and GS1.
 //!
 //! ## Crate features
 //!
