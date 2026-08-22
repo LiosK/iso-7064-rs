@@ -25,18 +25,19 @@ use crate::{charset::Numeric, spec_rem, system::System};
 /// The Luhn algorithm.
 ///
 /// See the [`System`] type for provided methods.
-pub const LUHN: Luhn = System::with_charset(Numeric, Numeric);
+pub const LUHN: LuhnSys = System::with_charset(Numeric, Numeric);
 
 /// The standard check digit algorithm for GS1 data structures (including GTIN).
 ///
 /// See the [`System`] type for provided methods.
-pub const GS1: Gs1 = System::with_charset(Numeric, Numeric);
+pub const GS1: Gs1Sys = System::with_charset(Numeric, Numeric);
 
-/// The Luhn algorithm.
-pub type Luhn = System<1, LuhnAcc, Numeric, Numeric>;
+/// The check character system interface for the Luhn algorithm.
+pub type LuhnSys = System<1, LuhnAcc, Numeric, Numeric>;
 
-/// The standard check digit algorithm for GS1 data structures (including GTIN).
-pub type Gs1 = System<1, Gs1Acc, Numeric, Numeric>;
+/// The check character system interface for the standard check digit algorithm for GS1 data
+/// structures (including GTIN).
+pub type Gs1Sys = System<1, Gs1Acc, Numeric, Numeric>;
 
 /// An accumulator for the Luhn algorithm.
 #[derive(Debug, Clone, Default)]

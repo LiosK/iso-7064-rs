@@ -1,10 +1,10 @@
-//! The [`Iban`] structure for the IBAN variant of MOD 97-10.
+//! The [`IbanSys`] structure for the IBAN variant of MOD 97-10.
 //!
 //! The International Bank Account Number (IBAN) is one of the most famous adopters of ISO/IEC 7064,
 //! whereas it employs MOD 97-10 in a distinctive configuration: the check digits are placed within
 //! the string rather than appended at its end, the alphanumeric input is converted to a numeric
 //! stream prior to validation, and some check digit pairs otherwise permitted under ISO/IEC 7064
-//! are rejected as invalid under this variant. The [`Iban`] structure provides support for
+//! are rejected as invalid under this variant. The [`IbanSys`] structure provides support for
 //! computing and verifying this variant.
 
 use core::{error, fmt};
@@ -13,14 +13,14 @@ use crate::accumulator::{Accumulator as _, Mod97_10};
 use crate::charset::{Encoder as _, Numeric};
 
 /// The IBAN variant of MOD 97-10.
-pub const IBAN: Iban = Iban {};
+pub const IBAN: IbanSys = IbanSys {};
 
 /// The check character system interface for the IBAN variant of MOD 97-10.
 #[derive(Debug, Default)]
 #[non_exhaustive]
-pub struct Iban {}
+pub struct IbanSys {}
 
-impl Iban {
+impl IbanSys {
     /// Computes the check digits for the country code and basic bank account number (BBAN).
     ///
     /// # Errors
