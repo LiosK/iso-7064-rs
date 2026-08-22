@@ -1,12 +1,3 @@
-//! The [`IbanSys`] structure for the IBAN variant of MOD 97-10.
-//!
-//! The International Bank Account Number (IBAN) is one of the most famous adopters of ISO/IEC 7064,
-//! whereas it employs MOD 97-10 in a distinctive configuration: the check digits are placed within
-//! the string rather than appended at its end, the alphanumeric input is converted to a numeric
-//! stream prior to validation, and some check digit pairs otherwise permitted under ISO/IEC 7064
-//! are rejected as invalid under this variant. The [`IbanSys`] structure provides support for
-//! computing and verifying this variant.
-
 use core::{error, fmt};
 
 use crate::accumulator::{Accumulator as _, Mod97_10};
@@ -16,6 +7,13 @@ use crate::charset::{Encoder as _, Numeric};
 pub const IBAN: IbanSys = IbanSys {};
 
 /// The check character system interface for the IBAN variant of MOD 97-10.
+///
+/// The International Bank Account Number (IBAN) is one of the most famous adopters of ISO/IEC 7064,
+/// whereas it employs MOD 97-10 in a distinctive configuration: the check digits are placed within
+/// the string rather than appended at its end, the alphanumeric input is converted to a numeric
+/// stream prior to validation, and some check digit pairs otherwise permitted under ISO/IEC 7064
+/// are rejected as invalid under this variant. This structure provides support for computing and
+/// verifying this variant.
 #[derive(Debug, Default)]
 #[non_exhaustive]
 pub struct IbanSys {}
@@ -30,10 +28,10 @@ impl IbanSys {
     /// # Examples
     ///
     /// ```rust
-    /// use iso_7064::iban::IBAN;
+    /// use iso_7064::extra::IBAN;
     ///
     /// assert_eq!(IBAN.compute("GB", "BUKB20201555555555")?, ['3', '3']);
-    /// # Ok::<_, iso_7064::iban::IbanError>(())
+    /// # Ok::<_, iso_7064::extra::IbanError>(())
     /// ```
     pub fn compute(&self, country: &str, bank_account: &str) -> Result<[char; 2], IbanError> {
         self.compute_from_chars(country.chars(), bank_account.chars())
@@ -49,12 +47,12 @@ impl IbanSys {
     /// # Examples
     ///
     /// ```rust
-    /// use iso_7064::iban::IBAN;
+    /// use iso_7064::extra::IBAN;
     ///
     /// let ctry_iter = "NL".chars();
     /// let bban_iter = "ABNA0123456789".chars();
     /// assert_eq!(IBAN.compute_from_chars(ctry_iter, bban_iter)?, ['0', '2']);
-    /// # Ok::<_, iso_7064::iban::IbanError>(())
+    /// # Ok::<_, iso_7064::extra::IbanError>(())
     /// ```
     pub fn compute_from_chars(
         &self,
@@ -85,10 +83,10 @@ impl IbanSys {
     /// # Examples
     ///
     /// ```rust
-    /// use iso_7064::iban::IBAN;
+    /// use iso_7064::extra::IBAN;
     ///
     /// assert!(IBAN.verify("GB33BUKB20201555555555")?);
-    /// # Ok::<_, iso_7064::iban::IbanError>(())
+    /// # Ok::<_, iso_7064::extra::IbanError>(())
     /// ```
     pub fn verify(&self, s: &str) -> Result<bool, IbanError> {
         self.verify_from_chars(s.chars())
@@ -106,11 +104,11 @@ impl IbanSys {
     /// # Examples
     ///
     /// ```rust
-    /// use iso_7064::iban::IBAN;
+    /// use iso_7064::extra::IBAN;
     ///
     /// let iter = "NL02ABNA0123456789".chars();
     /// assert!(IBAN.verify_from_chars(iter)?);
-    /// # Ok::<_, iso_7064::iban::IbanError>(())
+    /// # Ok::<_, iso_7064::extra::IbanError>(())
     /// ```
     pub fn verify_from_chars(
         &self,

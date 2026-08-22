@@ -52,7 +52,6 @@
 pub mod accumulator;
 pub mod charset;
 pub mod extra;
-pub mod iban;
 pub mod system;
 
 use system::System;
